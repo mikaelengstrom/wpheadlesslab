@@ -1,0 +1,44 @@
+{
+  "name": "sage",
+  "version": "9.0.0-alpha.3",
+  "author": "Roots <team@roots.io>",
+  "homepage": "https://roots.io/sage/",
+  "private": true,
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/roots/sage.git"
+  },
+  "bugs": {
+    "url": "https://github.com/roots/sage/issues"
+  },
+  "licenses": [
+    {
+      "type": "MIT",
+      "url": "http://opensource.org/licenses/MIT"
+    }
+  ],
+  "engines": {
+    "node": ">= 4.5"
+  },
+  "main": "gulpfile.js",
+  "scripts": {
+    "start": "gulp watch",
+    "build": "gulp",
+    "watch": "gulp watch",
+    "build:production": "gulp --production"
+  },
+  "devDependencies": {
+    "babel-eslint": "^6.0.4",
+    "eslint-plugin-react": "^5.2.2",
+    "laravel-elixir": "5.0.0",
+    "laravel-elixir-eslint": "2.0.1"
+  },
+  "dependencies": {
+    "browsernizr": "^2.1.0",
+    "jquery": "^3.2.1",
+    "gulp": "^3.9.1",
+    "pjax": "^0.2.4",
+    "store": "^2.0.4",
+    "waypoints": "^4.0.1"
+  }
+}

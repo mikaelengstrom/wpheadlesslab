@@ -1,0 +1,13 @@
+PROD_USER=root
+PROD_HOST=prod-server
+PROD_SRC_PATH=/mnt/persist/www/frojd_repress/current
+PROD_UPLOAD_PATH=/mnt/persist/www/frojd_repress/shared/src/app/uploads
+PROD_DOMAIN=repress.dev
+
+STAGE_USER=root
+STAGE_HOST=stage-server
+STAGE_SRC_PATH=/mnt/persist/www/frojd_repress/current
+STAGE_UPLOAD_PATH=/mnt/persist/www/frojd_repress/shared/src/app/uploads
+STAGE_DOMAIN=stage.repress.dev
+
+LOCAL_DOMAIN=repress.dev.test:8880

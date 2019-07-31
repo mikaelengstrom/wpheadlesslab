@@ -1,0 +1,6 @@
+---
+python_version: python3
+ansistrano_deploy_to: /mnt/persist/www/frojd_repress
+database_name: frojd_repress_db
+database_user: frojd_repress
+project_slug: frojd_repress

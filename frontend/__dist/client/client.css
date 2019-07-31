@@ -1,0 +1,11 @@
+.UnknownBlock {
+  border: 2px solid red;
+  padding: 10px;
+  font-size: 32px;
+  color: red;
+}
+.BlurbFull {
+  border: 2px solid red;
+}
+
+/*# sourceMappingURL=/dist/client/client.css.map */

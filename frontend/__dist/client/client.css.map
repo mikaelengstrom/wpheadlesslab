@@ -1,0 +1,1 @@
+{"version":3,"sources":["blocks/UnknownBlock/index.scss","blocks/BlurbFull/index.scss"],"names":[],"mappings":"AAAA;EACI;EACA;EAEA;EACA;;ACLJ;EACI","file":"client.css","sourceRoot":"../../app","sourcesContent":[".UnknownBlock {\n    border: 2px solid red;\n    padding: 10px; \n\n    font-size: 32px; \n    color: red; \n}",".BlurbFull {\n    border: 2px solid red; \n}"]}
