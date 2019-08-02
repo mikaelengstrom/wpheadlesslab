@@ -8,8 +8,8 @@ use Roots\Sage\Template;
  * Theme assets
  */
 add_action('wp_enqueue_scripts', function () {
-    $themeVersion = wp_get_theme()->get('Version');
-    $verTag = WP_ENV == 'production' ? md5($themeVersion) : $themeVersion;
+    $theme_version = wp_get_theme()->get('Version');
+    $version_tag = WP_ENV == 'production' ? md5($theme_version) : $theme_version;
 
     wp_register_script('react/dist.js', asset_path('client/client.js'));
     wp_localize_script('react/dist.js', '__FROJD_SETTINGS', [
@@ -19,11 +19,11 @@ add_action('wp_enqueue_scripts', function () {
         'wpRestNonce' => is_user_logged_in()
             ? wp_create_nonce('wp_rest')
             : null,
-        'repressVersion' => $themeVersion
+        'repressVersion' => $theme_version
     ]);
-    wp_enqueue_script('react/dist.js', asset_path('client/client.js'), '', $verTag, true);
+    wp_enqueue_script('react/dist.js', asset_path('client/client.js'), '', $version_tag, true);
 
-    wp_enqueue_style('react/main-styles', asset_path('client/client.css'), false, $verTag);
+    wp_enqueue_style('react/main-styles', asset_path('client/client.css'), false, $version_tag);
 }, 100);
 
 

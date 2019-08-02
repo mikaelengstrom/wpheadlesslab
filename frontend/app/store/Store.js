@@ -11,13 +11,16 @@ import queryString from 'query-string';
 
 import { 
     isFn, 
-    debug 
+    isStr,
+    isObj,
+    debug
 } from '../utils';
 
 import config from '../config';
 
 import * as cms from '../services/cms';
 import * as cache from '../services/cache';
+
 
 class Store {
     debug = true; 
@@ -33,20 +36,17 @@ class Store {
             enforceActions: 'always'
         });
 
-        cache.setTtl(config.cacheTtl);
-
         runInAction(() => {
             Object.assign(this, initialState || {});
-
         });
 
-        if(process.env.BABEL_ENV === 'client') {
-            this.setQueryParams(queryString.parse(window.location.search));
-        }
+        cache.setTtl(config.cacheTtl);
+        this.updateQueryParams(); 
     }
 
     // main ui state
     @observable state = this.states.loading;
+    @observable error = null; 
 
     // global state
     serverSideBootstrapped = false; 
@@ -56,9 +56,9 @@ class Store {
 
     @observable routes = [];
     @observable primaryMenu = {}; 
-    @observable content = observable.object({}); 
 
     // current page state 
+    @observable loadingPageAndProps = false; 
     @observable pageData = observable.object({});
     @observable pageInitialProps = observable.object({}); 
 
@@ -87,6 +87,8 @@ class Store {
         });
     }
 
+    // getters / setters 
+
     setLocationChanged(bool) {
         this.locationChanged = bool; 
     } 
@@ -100,18 +102,76 @@ class Store {
         this.currentQuery = params;
     }
 
-    get hasQueryParams() {
+    hasQueryParams() {
         return Object.keys(this.currentQuery).length > 0; 
     }
 
-    get hasPreviewQuery() {
-        return this.hasQueryParams 
+    hasPreviewQuery() {
+        return this.hasQueryParams() 
             && 'preview' in this.currentQuery 
             && this.currentQuery['preview'] === 'true'; 
     }
 
+    updateQueryParams() {
+        if (process.env.BABEL_ENV === 'client') {
+            this.setQueryParams(queryString.parse(window.location.search));
+        }
+    }
+
+    getError() {
+        if(isStr(this.error)) {
+            return this.error; 
+        }
+
+        if(isObj(this.error) && 'stack' in this.error) {
+            return this.error.stack; 
+        }
+
+        if (isObj(this.error) && 'message' in this.error) {
+            return this.error.message; 
+        }
+
+        return null; 
+    }
+
+    // actions
+
+    @action
+    async loadRoutes() {
+        try {
+            const routes = await cms.getRoutes();
+
+            runInAction(() => {
+                this.routes = routes;
+            });
+
+        } catch (error) {
+            runInAction(() => {
+                this.state = this.states.error;
+                this.error = error; 
+            });
+        }
+    }
+
+    @action
+    async loadPrimaryMenu() {
+        try {
+            const menu = await cms.getPrimaryMenu();
+
+            runInAction(() => {
+                this.primaryMenu = menu;
+            });
+        } catch (error) {
+            runInAction(() => {
+                this.state = this.states.error;
+                this.error = error; 
+            });
+        }
+    }
+
     @action
     async loadContentAndInitialProps(id, type, getInitialProps) {
+        this.updateQueryParams(); 
 
         debug('Store: loadContentAndInitialProps() called - loading content and initial props');
         debug('Store: current query params: ', this.currentQuery);
@@ -126,16 +186,24 @@ class Store {
         this.pageInitialProps = observable.object({}); 
         debug('Store: cleared pageInitialProps'); 
 
-        let loadContent = () => this.hasPreviewQuery
+        this.loadingPageAndProps = true; 
+
+        const loadContent = () => this.hasPreviewQuery()
             ? this.loadContentPreview(id, type)
             : this.loadContent(id, type);
 
+        const loadInitialProps = () => isFn(getInitialProps)
+            ? this.loadInitialProps(getInitialProps)
+            : undefined;
+
         await Promise.all([
             loadContent(), 
-            isFn(getInitialProps) 
-                ? this.loadInitialProps(getInitialProps)
-                : undefined
+            loadInitialProps()
         ]); 
+
+        runInAction(() => {
+            this.loadingPageAndProps = false
+        }); 
     }
     
     @action
@@ -161,6 +229,7 @@ class Store {
         } catch (error) {
             runInAction(() => {
                 this.state = this.states.error;
+                this.error = error; 
             });
         }
     }
@@ -183,59 +252,30 @@ class Store {
             });
 
         } catch (error) {
-            debug('Store: loadContentPreview() FAILED, reason: ', error);
             runInAction(() => {
+                debug('Store: loadContentPreview() FAILED, reason: ', error);
+
                 this.state = this.states.error;
+                this.error = error; 
             });
         }
     } 
+
     @action 
     async loadInitialProps(getInitialProps) {
         debug('Store: loadInitialProps() called - loading props!');
 
         try {
             const props = await getInitialProps();
+            debug('Store: fetched initial props!');
 
             runInAction(() => {
-                debug('Store: fetched initial props!');
                 set(this.pageInitialProps, props);
             }); 
         } catch (error) {
             runInAction(() => {
                 this.state = this.states.error;
-                throw error; 
-            });
-        }
-    }
-
-    @action
-    async loadRoutes() {
-        try {
-            const routes = await cms.getRoutes();
-            runInAction(() => {
-                this.routes = routes;
-            });
-
-        } catch (error) {
-            runInAction(() => {
-                this.state = this.states.error;
-                throw error; 
-            });
-        }
-    }
-
-    @action
-    async loadPrimaryMenu() {
-        try {
-            const menu = await cms.getPrimaryMenu();
-
-            runInAction(() => {
-                this.primaryMenu = menu;
-            });
-        } catch (error) {
-            runInAction(() => {
-                this.state = this.states.error;
-                throw error; 
+                this.error = error; 
             });
         }
     }

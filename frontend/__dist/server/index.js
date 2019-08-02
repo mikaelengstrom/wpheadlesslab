@@ -211,7 +211,8 @@ function _objectSpread(target) { for (var i = 1; i < arguments.length; i++) { va
 function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
 
 const generalConfig = {
-  cacheTtl: 30 * 1000
+  cacheTtl: 5 * 1000 //30 * 1000
+
 };
 const devDefaultConfig = {
   wpHome: 'http://repress.dev.test:8880',
@@ -252,7 +253,8 @@ const routeTransformer = routes => {
   return (0, _camelcaseKeys.default)(routes, {
     deep: true
   });
-};
+}; // transform any absolute url containing WP_HOME to a relative url
+
 
 exports.routeTransformer = routeTransformer;
 
@@ -325,7 +327,7 @@ const featuredImageTransformer = data => {
 //     content,
 //     featuredImage,
 //     ...
-//     <acf properties in camel case if available> 
+//     <registered acf properties in camel case if available> 
 // }
 
 
@@ -514,7 +516,7 @@ const getContentPreview = async (id, type, previewMediaId, nonce) => {
   (0, _utils.debug)('CMS getContentPreview() preview media id: ', previewMediaId);
   revs = await getRevisions(id, type, nonce);
   (0, _utils.debug)('CMS: received post revision list: ', revs);
-  [featuredImage, pageData] = await Promise.all([previewMediaId > 0 ? getMedia(previewMediaId, nonce) : undefined, getRevision(id, type, revs[0].id, nonce)]);
+  [featuredImage, pageData] = await Promise.all([previewMediaId > -1 ? getMedia(previewMediaId, nonce) : undefined, getRevision(id, type, revs[0].id, nonce)]);
   (0, _utils.debug)('CMS: getContentPreview() - received preview media data: ', featuredImage);
   return _objectSpread({}, pageData, {
     featuredImage
@@ -626,7 +628,7 @@ var cms = _interopRequireWildcard(require("../services/cms"));
 
 var cache = _interopRequireWildcard(require("../services/cache"));
 
-var _class, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _temp;
+var _class, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _temp;
 
 function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) { var desc = Object.defineProperty && Object.getOwnPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : {}; if (desc.get || desc.set) { Object.defineProperty(newObj, key, desc); } else { newObj[key] = obj[key]; } } } } newObj.default = obj; return newObj; } }
 
@@ -649,32 +651,31 @@ let Store = (_class = (_temp = class Store {
 
     _initializerDefineProperty(this, "state", _descriptor, this);
 
+    _initializerDefineProperty(this, "error", _descriptor2, this);
+
     this.serverSideBootstrapped = false;
     this.locationChanged = false;
     this.currentQuery = {};
     this.wpRestNonce = {};
 
-    _initializerDefineProperty(this, "routes", _descriptor2, this);
+    _initializerDefineProperty(this, "routes", _descriptor3, this);
 
-    _initializerDefineProperty(this, "primaryMenu", _descriptor3, this);
+    _initializerDefineProperty(this, "primaryMenu", _descriptor4, this);
 
-    _initializerDefineProperty(this, "content", _descriptor4, this);
+    _initializerDefineProperty(this, "loadingPageAndProps", _descriptor5, this);
 
-    _initializerDefineProperty(this, "pageData", _descriptor5, this);
+    _initializerDefineProperty(this, "pageData", _descriptor6, this);
 
-    _initializerDefineProperty(this, "pageInitialProps", _descriptor6, this);
+    _initializerDefineProperty(this, "pageInitialProps", _descriptor7, this);
 
     (0, _mobx.configure)({
       enforceActions: 'always'
     });
-    cache.setTtl(_config.default.cacheTtl);
     (0, _mobx.runInAction)(() => {
       Object.assign(this, initialState || {});
     });
-
-    if (process.env.BABEL_ENV === 'client') {
-      this.setQueryParams(_queryString.default.parse(window.location.search));
-    }
+    cache.setTtl(_config.default.cacheTtl);
+    this.updateQueryParams();
   } // main ui state
 
 
@@ -691,7 +692,8 @@ let Store = (_class = (_temp = class Store {
     (0, _mobx.runInAction)(() => {
       this.state = this.states.ready;
     });
-  }
+  } // getters / setters 
+
 
   setLocationChanged(bool) {
     this.locationChanged = bool;
@@ -706,15 +708,67 @@ let Store = (_class = (_temp = class Store {
     this.currentQuery = params;
   }
 
-  get hasQueryParams() {
+  hasQueryParams() {
     return Object.keys(this.currentQuery).length > 0;
   }
 
-  get hasPreviewQuery() {
-    return this.hasQueryParams && 'preview' in this.currentQuery && this.currentQuery['preview'] === 'true';
+  hasPreviewQuery() {
+    return this.hasQueryParams() && 'preview' in this.currentQuery && this.currentQuery['preview'] === 'true';
+  }
+
+  updateQueryParams() {
+    if (process.env.BABEL_ENV === 'client') {
+      this.setQueryParams(_queryString.default.parse(window.location.search));
+    }
+  }
+
+  getError() {
+    if ((0, _utils.isStr)(this.error)) {
+      return this.error;
+    }
+
+    if ((0, _utils.isObj)(this.error) && 'stack' in this.error) {
+      return this.error.stack;
+    }
+
+    if ((0, _utils.isObj)(this.error) && 'message' in this.error) {
+      return this.error.message;
+    }
+
+    return null;
+  } // actions
+
+
+  async loadRoutes() {
+    try {
+      const routes = await cms.getRoutes();
+      (0, _mobx.runInAction)(() => {
+        this.routes = routes;
+      });
+    } catch (error) {
+      (0, _mobx.runInAction)(() => {
+        this.state = this.states.error;
+        this.error = error;
+      });
+    }
+  }
+
+  async loadPrimaryMenu() {
+    try {
+      const menu = await cms.getPrimaryMenu();
+      (0, _mobx.runInAction)(() => {
+        this.primaryMenu = menu;
+      });
+    } catch (error) {
+      (0, _mobx.runInAction)(() => {
+        this.state = this.states.error;
+        this.error = error;
+      });
+    }
   }
 
   async loadContentAndInitialProps(id, type, getInitialProps) {
+    this.updateQueryParams();
     (0, _utils.debug)('Store: loadContentAndInitialProps() called - loading content and initial props');
     (0, _utils.debug)('Store: current query params: ', this.currentQuery); // clear page data 
     // (in order to not render incorrect data on new page while new page data is loading)
@@ -725,10 +779,16 @@ let Store = (_class = (_temp = class Store {
 
     this.pageInitialProps = _mobx.observable.object({});
     (0, _utils.debug)('Store: cleared pageInitialProps');
+    this.loadingPageAndProps = true;
 
-    let loadContent = () => this.hasPreviewQuery ? this.loadContentPreview(id, type) : this.loadContent(id, type);
+    const loadContent = () => this.hasPreviewQuery() ? this.loadContentPreview(id, type) : this.loadContent(id, type);
 
-    await Promise.all([loadContent(), (0, _utils.isFn)(getInitialProps) ? this.loadInitialProps(getInitialProps) : undefined]);
+    const loadInitialProps = () => (0, _utils.isFn)(getInitialProps) ? this.loadInitialProps(getInitialProps) : undefined;
+
+    await Promise.all([loadContent(), loadInitialProps()]);
+    (0, _mobx.runInAction)(() => {
+      this.loadingPageAndProps = false;
+    });
   }
 
   async loadContent(id, type) {
@@ -750,6 +810,7 @@ let Store = (_class = (_temp = class Store {
     } catch (error) {
       (0, _mobx.runInAction)(() => {
         this.state = this.states.error;
+        this.error = error;
       });
     }
   }
@@ -766,9 +827,10 @@ let Store = (_class = (_temp = class Store {
         (0, _mobx.set)(this.pageData, content);
       });
     } catch (error) {
-      (0, _utils.debug)('Store: loadContentPreview() FAILED, reason: ', error);
       (0, _mobx.runInAction)(() => {
+        (0, _utils.debug)('Store: loadContentPreview() FAILED, reason: ', error);
         this.state = this.states.error;
+        this.error = error;
       });
     }
   }
@@ -778,42 +840,14 @@ let Store = (_class = (_temp = class Store {
 
     try {
       const props = await getInitialProps();
+      (0, _utils.debug)('Store: fetched initial props!');
       (0, _mobx.runInAction)(() => {
-        (0, _utils.debug)('Store: fetched initial props!');
         (0, _mobx.set)(this.pageInitialProps, props);
       });
     } catch (error) {
       (0, _mobx.runInAction)(() => {
         this.state = this.states.error;
-        throw error;
-      });
-    }
-  }
-
-  async loadRoutes() {
-    try {
-      const routes = await cms.getRoutes();
-      (0, _mobx.runInAction)(() => {
-        this.routes = routes;
-      });
-    } catch (error) {
-      (0, _mobx.runInAction)(() => {
-        this.state = this.states.error;
-        throw error;
-      });
-    }
-  }
-
-  async loadPrimaryMenu() {
-    try {
-      const menu = await cms.getPrimaryMenu();
-      (0, _mobx.runInAction)(() => {
-        this.primaryMenu = menu;
-      });
-    } catch (error) {
-      (0, _mobx.runInAction)(() => {
-        this.state = this.states.error;
-        throw error;
+        this.error = error;
       });
     }
   }
@@ -825,42 +859,49 @@ let Store = (_class = (_temp = class Store {
   initializer: function () {
     return this.states.loading;
   }
-}), _descriptor2 = _applyDecoratedDescriptor(_class.prototype, "routes", [_mobx.observable], {
+}), _descriptor2 = _applyDecoratedDescriptor(_class.prototype, "error", [_mobx.observable], {
+  configurable: true,
+  enumerable: true,
+  writable: true,
+  initializer: function () {
+    return null;
+  }
+}), _descriptor3 = _applyDecoratedDescriptor(_class.prototype, "routes", [_mobx.observable], {
   configurable: true,
   enumerable: true,
   writable: true,
   initializer: function () {
     return [];
   }
-}), _descriptor3 = _applyDecoratedDescriptor(_class.prototype, "primaryMenu", [_mobx.observable], {
+}), _descriptor4 = _applyDecoratedDescriptor(_class.prototype, "primaryMenu", [_mobx.observable], {
   configurable: true,
   enumerable: true,
   writable: true,
   initializer: function () {
     return {};
   }
-}), _descriptor4 = _applyDecoratedDescriptor(_class.prototype, "content", [_mobx.observable], {
+}), _descriptor5 = _applyDecoratedDescriptor(_class.prototype, "loadingPageAndProps", [_mobx.observable], {
+  configurable: true,
+  enumerable: true,
+  writable: true,
+  initializer: function () {
+    return false;
+  }
+}), _descriptor6 = _applyDecoratedDescriptor(_class.prototype, "pageData", [_mobx.observable], {
   configurable: true,
   enumerable: true,
   writable: true,
   initializer: function () {
     return _mobx.observable.object({});
   }
-}), _descriptor5 = _applyDecoratedDescriptor(_class.prototype, "pageData", [_mobx.observable], {
+}), _descriptor7 = _applyDecoratedDescriptor(_class.prototype, "pageInitialProps", [_mobx.observable], {
   configurable: true,
   enumerable: true,
   writable: true,
   initializer: function () {
     return _mobx.observable.object({});
   }
-}), _descriptor6 = _applyDecoratedDescriptor(_class.prototype, "pageInitialProps", [_mobx.observable], {
-  configurable: true,
-  enumerable: true,
-  writable: true,
-  initializer: function () {
-    return _mobx.observable.object({});
-  }
-}), _applyDecoratedDescriptor(_class.prototype, "bootstrap", [_mobx.action], Object.getOwnPropertyDescriptor(_class.prototype, "bootstrap"), _class.prototype), _applyDecoratedDescriptor(_class.prototype, "loadContentAndInitialProps", [_mobx.action], Object.getOwnPropertyDescriptor(_class.prototype, "loadContentAndInitialProps"), _class.prototype), _applyDecoratedDescriptor(_class.prototype, "loadContent", [_mobx.action], Object.getOwnPropertyDescriptor(_class.prototype, "loadContent"), _class.prototype), _applyDecoratedDescriptor(_class.prototype, "loadContentPreview", [_mobx.action], Object.getOwnPropertyDescriptor(_class.prototype, "loadContentPreview"), _class.prototype), _applyDecoratedDescriptor(_class.prototype, "loadInitialProps", [_mobx.action], Object.getOwnPropertyDescriptor(_class.prototype, "loadInitialProps"), _class.prototype), _applyDecoratedDescriptor(_class.prototype, "loadRoutes", [_mobx.action], Object.getOwnPropertyDescriptor(_class.prototype, "loadRoutes"), _class.prototype), _applyDecoratedDescriptor(_class.prototype, "loadPrimaryMenu", [_mobx.action], Object.getOwnPropertyDescriptor(_class.prototype, "loadPrimaryMenu"), _class.prototype)), _class);
+}), _applyDecoratedDescriptor(_class.prototype, "bootstrap", [_mobx.action], Object.getOwnPropertyDescriptor(_class.prototype, "bootstrap"), _class.prototype), _applyDecoratedDescriptor(_class.prototype, "loadRoutes", [_mobx.action], Object.getOwnPropertyDescriptor(_class.prototype, "loadRoutes"), _class.prototype), _applyDecoratedDescriptor(_class.prototype, "loadPrimaryMenu", [_mobx.action], Object.getOwnPropertyDescriptor(_class.prototype, "loadPrimaryMenu"), _class.prototype), _applyDecoratedDescriptor(_class.prototype, "loadContentAndInitialProps", [_mobx.action], Object.getOwnPropertyDescriptor(_class.prototype, "loadContentAndInitialProps"), _class.prototype), _applyDecoratedDescriptor(_class.prototype, "loadContent", [_mobx.action], Object.getOwnPropertyDescriptor(_class.prototype, "loadContent"), _class.prototype), _applyDecoratedDescriptor(_class.prototype, "loadContentPreview", [_mobx.action], Object.getOwnPropertyDescriptor(_class.prototype, "loadContentPreview"), _class.prototype), _applyDecoratedDescriptor(_class.prototype, "loadInitialProps", [_mobx.action], Object.getOwnPropertyDescriptor(_class.prototype, "loadInitialProps"), _class.prototype)), _class);
 var _default = Store;
 exports.default = _default;
 },{"../utils":"mbFY","../config":"LpuZ","../services/cms":"lAOr","../services/cache":"/FFy"}],"28Kg":[function(require,module,exports) {
@@ -893,31 +934,9 @@ function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj;
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-const storeContext = _react.default.createContext();
-
 let defaultStore = new _Store.default();
 
-const dehydrate = store => {
-  return base64.encode((0, _jsonStringifySafe.default)((0, _mobx.toJS)(store, true)));
-};
-
-exports.dehydrate = dehydrate;
-
-const rehydrate = storeJson => {
-  return JSON.parse(base64.decode(storeJson));
-};
-
-exports.rehydrate = rehydrate;
-
-if (process.env.BABEL_ENV === 'client' // hydrate ssr 
-&& (0, _utils.definedNotNull)(window.__FROJD_STATE)) {
-  let state = rehydrate(window.__FROJD_STATE);
-  defaultStore = new _Store.default(state);
-  (0, _utils.debug)('Hydrated store with state: ', state);
-} else if (process.env.BABEL_ENV === 'client') {
-  // ssr failed/not available, start bootstrap
-  defaultStore.bootstrap();
-}
+const storeContext = _react.default.createContext();
 
 const StoreProvider = ({
   store,
@@ -943,6 +962,18 @@ const MockStoreProvider = ({
 
 exports.MockStoreProvider = MockStoreProvider;
 
+const dehydrate = store => {
+  return base64.encode((0, _jsonStringifySafe.default)((0, _mobx.toJS)(store, true)));
+};
+
+exports.dehydrate = dehydrate;
+
+const rehydrate = storeJson => {
+  return JSON.parse(base64.decode(storeJson));
+};
+
+exports.rehydrate = rehydrate;
+
 const useStore = () => {
   const store = _react.default.useContext(storeContext);
 
@@ -954,6 +985,16 @@ const useStore = () => {
 };
 
 exports.useStore = useStore;
+
+if (process.env.BABEL_ENV === 'client' // hydrate ssr 
+&& (0, _utils.definedNotNull)(window.__FROJD_STATE)) {
+  let state = rehydrate(window.__FROJD_STATE);
+  defaultStore = new _Store.default(state);
+  (0, _utils.debug)('Hydrated store with state: ', state);
+} else if (process.env.BABEL_ENV === 'client') {
+  // ssr failed/not available, start bootstrap
+  defaultStore.bootstrap();
+}
 },{"../utils":"mbFY","./Store":"uhQu"}],"dy0w":[function(require,module,exports) {
 "use strict";
 
@@ -1099,10 +1140,16 @@ var _reactHelmetAsync = require("react-helmet-async");
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-const NotFound = () => {
-  return _react.default.createElement(_react.default.Fragment, null, _react.default.createElement(_reactHelmetAsync.Helmet, null, _react.default.createElement("title", null, "404")), _react.default.createElement("div", null, _react.default.createElement("h1", null, "404"), _react.default.createElement("p", null, "The page could not be found")));
+// import PropTypes from 'prop-types';
+const NotFound = ({
+  message
+}) => {
+  return _react.default.createElement(_react.default.Fragment, null, _react.default.createElement(_reactHelmetAsync.Helmet, null, _react.default.createElement("title", null, "404")), _react.default.createElement("div", null, _react.default.createElement("h1", null, "404"), _react.default.createElement("p", null, message)));
 };
 
+NotFound.defaultProps = {
+  message: 'The page could not be found'
+};
 var _default = NotFound;
 exports.default = _default;
 },{}],"e6rX":[function(require,module,exports) {
@@ -1517,6 +1564,7 @@ function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj;
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 const Recipe = (0, _mobxReactLite.observer)(({
+  loading,
   id,
   url,
   pageData,
@@ -1532,7 +1580,7 @@ const Recipe = (0, _mobxReactLite.observer)(({
   const {
     date
   } = initialProps;
-  return _react.default.createElement(_react.default.Fragment, null, _react.default.createElement(_reactHelmetAsync.Helmet, null, _react.default.createElement("title", null, "Recipe Page")), _react.default.createElement("div", null, _react.default.createElement("h1", null, "Recept: ", title), _react.default.createElement("h3", null, "date initial prop: ", date), _react.default.createElement("h4", null, "Score: ", recipeScore ? recipeScore : 'saknas'), featuredImage && _react.default.createElement("img", {
+  return _react.default.createElement(_react.default.Fragment, null, _react.default.createElement(_reactHelmetAsync.Helmet, null, _react.default.createElement("title", null, "Recipe Page")), _react.default.createElement("div", null, loading && _react.default.createElement("h1", null, "LOADING PAGE & PROPS!"), _react.default.createElement("h1", null, "Recept: ", title), _react.default.createElement("h3", null, "date initial prop: ", date), _react.default.createElement("h4", null, "Score: ", recipeScore ? recipeScore : 'saknas'), featuredImage && _react.default.createElement("img", {
     src: featuredImage.sizes.thumbnail.url
   }), _react.default.createElement("p", null, "id: ", id), _react.default.createElement("p", null, "url: ", url), _react.default.createElement(_RawHtml.default, {
     html: content
@@ -1572,7 +1620,7 @@ Object.defineProperty(exports, "__esModule", {
 });
 exports.default = void 0;
 
-var _react = _interopRequireWildcard(require("react"));
+var _react = _interopRequireDefault(require("react"));
 
 var _reactRouterDom = require("react-router-dom");
 
@@ -1599,8 +1647,6 @@ var _Recipe = _interopRequireDefault(require("./pages/Recipe"));
 var _utils = require("./utils");
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) { var desc = Object.defineProperty && Object.getOwnPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : {}; if (desc.get || desc.set) { Object.defineProperty(newObj, key, desc); } else { newObj[key] = obj[key]; } } } } newObj.default = obj; return newObj; } }
 
 function _extends() { _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; }; return _extends.apply(this, arguments); }
 
@@ -1635,6 +1681,7 @@ const App = (0, _mobxReactLite.observer)(({
 }, ref) => {
   let store = (0, _store.useStore)(); // trigger a rerender when these props are changed (mobx4 :/)
 
+  store.loadingPageAndProps;
   (0, _mobx.values)(store.pageData);
   (0, _mobx.values)(store.pageInitialProps);
 
@@ -1643,7 +1690,7 @@ const App = (0, _mobxReactLite.observer)(({
   }
 
   if (store.state === store.states.error) {
-    return _react.default.createElement("div", null, "An error occured!");
+    return _react.default.createElement("div", null, _react.default.createElement("h3", null, "An error occured:"), _react.default.createElement("code", null, store.getError()));
   }
 
   const renderRoute = (props, route) => {
@@ -1672,6 +1719,7 @@ const App = (0, _mobxReactLite.observer)(({
       id: route.id,
       type: route.postType,
       url: route.url,
+      loading: store.loadingPageAndProps,
       pageData: store.pageData,
       initialProps: store.pageInitialProps
     }, props));
@@ -1726,9 +1774,7 @@ const ssrRenderer = async (req, res) => {
   let appRef = (0, _react.createRef)(null);
   const context = {};
   const helmetContext = {};
-  const store = new _store.Store(); // store.setQueryParams(req.query);
-
-  (0, _utils.debug)('SSR renderer: received request for: ', req.url);
+  const store = new _store.Store();
   (0, _utils.debug)('SSR renderer: calling store bootstrap!');
   await store.bootstrap();
 

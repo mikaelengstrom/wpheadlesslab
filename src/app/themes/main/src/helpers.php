@@ -12,12 +12,12 @@ use Roots\Sage\Template;
  * @return string
  */
 function fetch_ssr_component() {
-    $containerHtml = '<div id="root"></div>';
-    $hasPreviewQuery = strpos($_SERVER['REQUEST_URI'], '?') !== false
+    $container_html = '<div id="root"></div>';
+    $has_preview_query = strpos($_SERVER['REQUEST_URI'], '?') !== false
         && isset($_GET['preview']);
 
-    if($hasPreviewQuery) {
-        return $containerHtml;
+    if($has_preview_query) {
+        return $container_html;
     }
 
     try {
@@ -25,13 +25,13 @@ function fetch_ssr_component() {
 
         $client = new \GuzzleHttp\Client();
         $resp = $client->request('GET', $url);
-        $ssrHtml = $resp->getBody();
+        $ssr_html = $resp->getBody();
 
-        return $ssrHtml;
+        return $ssr_html;
     } catch (\GuzzleHttp\Exception\BadResponseException $e) {
-        return $containerHtml;
+        return $container_html;
     } catch(\GuzzleHttp\Exception\ConnectException $e) {
-        return $containerHtml;
+        return $container_html;
     }
 }
 

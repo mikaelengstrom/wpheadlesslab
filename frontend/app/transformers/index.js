@@ -11,6 +11,7 @@ const routeTransformer = (routes) => {
     return camelcaseKeys(routes, { deep: true });
 };
 
+// transform any absolute url containing WP_HOME to a relative url
 const transformToRelativeUrl = (item) => {
     const ignoreUrlsWith = ['.png', '.jpg', '.jpeg', '.svg', '.gif', '.webp', '.ico'];
 
@@ -18,7 +19,8 @@ const transformToRelativeUrl = (item) => {
 
     if (isStr(item)) {
         const abort = ignoreUrlsWith
-            .filter(fileType => item.indexOf(fileType) > -1).length > 0;
+            .filter(fileType => item.indexOf(fileType) > -1)
+            .length > 0;
         
         if (!abort && item.indexOf('http') > -1) {
             newItem = item.replace(config.wpHome, '')
@@ -31,9 +33,10 @@ const transformToRelativeUrl = (item) => {
 const menuTransformer = (menuData) => {
     let menu = camelcaseKeys(menuData, { deep: true });
 
-    traverse(menu.items).forEach(function(item) {
-        this.update(transformToRelativeUrl(item));
-    });
+    traverse(menu.items)
+        .forEach(function(item) {
+            this.update(transformToRelativeUrl(item));
+        });
 
     return menu;  
 };
@@ -83,7 +86,7 @@ const featuredImageTransformer = (data) => {
 //     content,
 //     featuredImage,
 //     ...
-//     <acf properties in camel case if available> 
+//     <registered acf properties in camel case if available> 
 // }
 
 const pageDataTransformer = (data) => {    

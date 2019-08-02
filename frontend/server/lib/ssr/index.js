@@ -29,9 +29,6 @@ const ssrRenderer = async (req, res) => {
     
     const store = new Store(); 
 
-    // store.setQueryParams(req.query);
-    debug('SSR renderer: received request for: ', req.url);
-
     debug('SSR renderer: calling store bootstrap!');
     await store.bootstrap();
 

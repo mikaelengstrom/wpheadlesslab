@@ -8,7 +8,7 @@ import RawHtml from '../../components/RawHtml';
 
 import * as cms from '../../services/cms';
 
-const Recipe = observer(({ id, url, pageData, initialProps }) => {
+const Recipe = observer(({ loading, id, url, pageData, initialProps }) => {
     const { title, content, featuredImage, recipeScore, blocks } = pageData; 
     const { date } = initialProps; 
 
@@ -18,6 +18,10 @@ const Recipe = observer(({ id, url, pageData, initialProps }) => {
                 <title>Recipe Page</title>
             </Helmet>
             <div>
+                {loading &&
+                    <h1>LOADING PAGE & PROPS!</h1>
+                }
+                
                 <h1>Recept: {title}</h1>
                 <h3>date initial prop: {date}</h3>
                 <h4>Score: {recipeScore ? recipeScore : 'saknas'}</h4>

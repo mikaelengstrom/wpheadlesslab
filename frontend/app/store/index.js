@@ -11,27 +11,10 @@ import { 
 
 import Store from './Store';
 
-const storeContext = React.createContext();
+
 let defaultStore = new Store(); 
+const storeContext = React.createContext();
 
-const dehydrate = (store) => {
-    return base64.encode(jsonStringifySafe(toJS(store, true)));
-};
-
-const rehydrate = (storeJson) => {
-    return JSON.parse(base64.decode(storeJson));
-}
-
-if (process.env.BABEL_ENV === 'client' // hydrate ssr 
-    && definedNotNull(window.__FROJD_STATE)) 
-{
-    let state = rehydrate(window.__FROJD_STATE);
-    defaultStore = new Store(state);
-
-    debug('Hydrated store with state: ', state);
-} else if (process.env.BABEL_ENV === 'client') { // ssr failed/not available, start bootstrap
-    defaultStore.bootstrap(); 
-}
 
 const StoreProvider = ({ store, children }) => {
     const __store = definedNotNull(store)
@@ -53,6 +36,16 @@ const MockStoreProvider = ({ store, children }) => {
     );
 }
 
+
+const dehydrate = (store) => {
+    return base64.encode(jsonStringifySafe(toJS(store, true)));
+};
+
+const rehydrate = (storeJson) => {
+    return JSON.parse(base64.decode(storeJson));
+}
+
+
 const useStore = () => {
     const store = React.useContext(storeContext);
 
@@ -61,6 +54,18 @@ const useStore = () => {
     }
 
     return store;
+}
+
+
+if (process.env.BABEL_ENV === 'client' // hydrate ssr 
+    && definedNotNull(window.__FROJD_STATE)) 
+{
+    let state = rehydrate(window.__FROJD_STATE);
+    defaultStore = new Store(state);
+
+    debug('Hydrated store with state: ', state);
+} else if (process.env.BABEL_ENV === 'client') { // ssr failed/not available, start bootstrap
+    defaultStore.bootstrap();
 }
 
 export {

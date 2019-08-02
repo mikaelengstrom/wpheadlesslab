@@ -45095,7 +45095,8 @@ function _objectSpread(target) { for (var i = 1; i < arguments.length; i++) { va
 function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
 
 var generalConfig = {
-  cacheTtl: 30 * 1000
+  cacheTtl: 5 * 1000 //30 * 1000
+
 };
 var devDefaultConfig = {
   wpHome: 'http://repress.dev.test:8880',
@@ -46094,7 +46095,8 @@ var routeTransformer = function routeTransformer(routes) {
   return (0, _camelcaseKeys.default)(routes, {
     deep: true
   });
-};
+}; // transform any absolute url containing WP_HOME to a relative url
+
 
 exports.routeTransformer = routeTransformer;
 
@@ -46171,7 +46173,7 @@ var featuredImageTransformer = function featuredImageTransformer(data) {
 //     content,
 //     featuredImage,
 //     ...
-//     <acf properties in camel case if available> 
+//     <registered acf properties in camel case if available> 
 // }
 
 
@@ -48126,7 +48128,7 @@ function () {
             revs = _context8.sent;
             (0, _utils.debug)('CMS: received post revision list: ', revs);
             _context8.next = 10;
-            return Promise.all([previewMediaId > 0 ? getMedia(previewMediaId, nonce) : undefined, getRevision(id, type, revs[0].id, nonce)]);
+            return Promise.all([previewMediaId > -1 ? getMedia(previewMediaId, nonce) : undefined, getRevision(id, type, revs[0].id, nonce)]);
 
           case 10:
             _ref9 = _context8.sent;
@@ -48260,7 +48262,7 @@ var cms = _interopRequireWildcard(require("../services/cms"));
 
 var cache = _interopRequireWildcard(require("../services/cache"));
 
-var _class, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _temp;
+var _class, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _temp;
 
 function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) { var desc = Object.defineProperty && Object.getOwnPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : {}; if (desc.get || desc.set) { Object.defineProperty(newObj, key, desc); } else { newObj[key] = obj[key]; } } } } newObj.default = obj; return newObj; } }
 
@@ -48299,32 +48301,31 @@ function () {
 
     _initializerDefineProperty(this, "state", _descriptor, this);
 
+    _initializerDefineProperty(this, "error", _descriptor2, this);
+
     this.serverSideBootstrapped = false;
     this.locationChanged = false;
     this.currentQuery = {};
     this.wpRestNonce = {};
 
-    _initializerDefineProperty(this, "routes", _descriptor2, this);
+    _initializerDefineProperty(this, "routes", _descriptor3, this);
 
-    _initializerDefineProperty(this, "primaryMenu", _descriptor3, this);
+    _initializerDefineProperty(this, "primaryMenu", _descriptor4, this);
 
-    _initializerDefineProperty(this, "content", _descriptor4, this);
+    _initializerDefineProperty(this, "loadingPageAndProps", _descriptor5, this);
 
-    _initializerDefineProperty(this, "pageData", _descriptor5, this);
+    _initializerDefineProperty(this, "pageData", _descriptor6, this);
 
-    _initializerDefineProperty(this, "pageInitialProps", _descriptor6, this);
+    _initializerDefineProperty(this, "pageInitialProps", _descriptor7, this);
 
     (0, _mobx.configure)({
       enforceActions: 'always'
     });
-    cache.setTtl(_config.default.cacheTtl);
     (0, _mobx.runInAction)(function () {
       Object.assign(_this, initialState || {});
     });
-
-    if ("client" === 'client') {
-      this.setQueryParams(_queryString.default.parse(window.location.search));
-    }
+    cache.setTtl(_config.default.cacheTtl);
+    this.updateQueryParams();
   } // main ui state
 
 
@@ -48369,7 +48370,8 @@ function () {
       }
 
       return bootstrap;
-    }()
+    }() // getters / setters 
+
   }, {
     key: "setLocationChanged",
     value: function setLocationChanged(bool) {
@@ -48387,249 +48389,79 @@ function () {
       this.currentQuery = params;
     }
   }, {
-    key: "loadContentAndInitialProps",
-    value: function () {
-      var _loadContentAndInitialProps = _asyncToGenerator(
-      /*#__PURE__*/
-      regeneratorRuntime.mark(function _callee2(id, type, getInitialProps) {
-        var _this3 = this;
-
-        var loadContent;
-        return regeneratorRuntime.wrap(function _callee2$(_context2) {
-          while (1) {
-            switch (_context2.prev = _context2.next) {
-              case 0:
-                (0, _utils.debug)('Store: loadContentAndInitialProps() called - loading content and initial props');
-                (0, _utils.debug)('Store: current query params: ', this.currentQuery); // clear page data 
-                // (in order to not render incorrect data on new page while new page data is loading)
-
-                this.pageData = _mobx.observable.object({});
-                (0, _utils.debug)('Store: cleared pageData'); // clear initial props
-                // (in order to not render incorrect data on new page while new page props are loading)
-
-                this.pageInitialProps = _mobx.observable.object({});
-                (0, _utils.debug)('Store: cleared pageInitialProps');
-
-                loadContent = function loadContent() {
-                  return _this3.hasPreviewQuery ? _this3.loadContentPreview(id, type) : _this3.loadContent(id, type);
-                };
-
-                _context2.next = 9;
-                return Promise.all([loadContent(), (0, _utils.isFn)(getInitialProps) ? this.loadInitialProps(getInitialProps) : undefined]);
-
-              case 9:
-              case "end":
-                return _context2.stop();
-            }
-          }
-        }, _callee2, this);
-      }));
-
-      function loadContentAndInitialProps(_x, _x2, _x3) {
-        return _loadContentAndInitialProps.apply(this, arguments);
-      }
-
-      return loadContentAndInitialProps;
-    }()
+    key: "hasQueryParams",
+    value: function hasQueryParams() {
+      return Object.keys(this.currentQuery).length > 0;
+    }
   }, {
-    key: "loadContent",
-    value: function () {
-      var _loadContent = _asyncToGenerator(
-      /*#__PURE__*/
-      regeneratorRuntime.mark(function _callee3(id, type) {
-        var _this4 = this;
-
-        var content;
-        return regeneratorRuntime.wrap(function _callee3$(_context3) {
-          while (1) {
-            switch (_context3.prev = _context3.next) {
-              case 0:
-                (0, _utils.debug)('Store: loadContent() called - loading page data ');
-
-                if (!cache.hasKey(id)) {
-                  _context3.next = 5;
-                  break;
-                }
-
-                (0, _mobx.set)(this.pageData, cache.get(id));
-                (0, _utils.debug)('Store: loadContent() - page data found in cache, returning cached data');
-                return _context3.abrupt("return");
-
-              case 5:
-                _context3.prev = 5;
-                _context3.next = 8;
-                return cms.getContent(id, type);
-
-              case 8:
-                content = _context3.sent;
-                (0, _mobx.runInAction)(function () {
-                  cache.set(id, content);
-                  (0, _mobx.set)(_this4.pageData, content);
-                  (0, _utils.debug)('Store: set pageData: ', _this4.pageData);
-                });
-                _context3.next = 15;
-                break;
-
-              case 12:
-                _context3.prev = 12;
-                _context3.t0 = _context3["catch"](5);
-                (0, _mobx.runInAction)(function () {
-                  _this4.state = _this4.states.error;
-                });
-
-              case 15:
-              case "end":
-                return _context3.stop();
-            }
-          }
-        }, _callee3, this, [[5, 12]]);
-      }));
-
-      function loadContent(_x4, _x5) {
-        return _loadContent.apply(this, arguments);
-      }
-
-      return loadContent;
-    }()
+    key: "hasPreviewQuery",
+    value: function hasPreviewQuery() {
+      return this.hasQueryParams() && 'preview' in this.currentQuery && this.currentQuery['preview'] === 'true';
+    }
   }, {
-    key: "loadContentPreview",
-    value: function () {
-      var _loadContentPreview = _asyncToGenerator(
-      /*#__PURE__*/
-      regeneratorRuntime.mark(function _callee4(id, type) {
-        var _this5 = this;
-
-        var mediaId, content;
-        return regeneratorRuntime.wrap(function _callee4$(_context4) {
-          while (1) {
-            switch (_context4.prev = _context4.next) {
-              case 0:
-                mediaId = '_thumbnail_id' in this.currentQuery ? this.currentQuery['_thumbnail_id'] : -1;
-                (0, _utils.debug)('Store: loadContentPreview() called - loading PREVIEW page data ');
-                (0, _utils.debug)('Store: loadContentPreview() - will load featured media preview with media id: ', mediaId);
-                _context4.prev = 3;
-                _context4.next = 6;
-                return cms.getContentPreview(id, type, mediaId, this.wpRestNonce);
-
-              case 6:
-                content = _context4.sent;
-                (0, _mobx.runInAction)(function () {
-                  (0, _utils.debug)('Store: setting PREVIEW pageData: ', _this5.pageData);
-                  (0, _mobx.set)(_this5.pageData, content);
-                });
-                _context4.next = 14;
-                break;
-
-              case 10:
-                _context4.prev = 10;
-                _context4.t0 = _context4["catch"](3);
-                (0, _utils.debug)('Store: loadContentPreview() FAILED, reason: ', _context4.t0);
-                (0, _mobx.runInAction)(function () {
-                  _this5.state = _this5.states.error;
-                });
-
-              case 14:
-              case "end":
-                return _context4.stop();
-            }
-          }
-        }, _callee4, this, [[3, 10]]);
-      }));
-
-      function loadContentPreview(_x6, _x7) {
-        return _loadContentPreview.apply(this, arguments);
+    key: "updateQueryParams",
+    value: function updateQueryParams() {
+      if ("client" === 'client') {
+        this.setQueryParams(_queryString.default.parse(window.location.search));
       }
-
-      return loadContentPreview;
-    }()
+    }
   }, {
-    key: "loadInitialProps",
-    value: function () {
-      var _loadInitialProps = _asyncToGenerator(
-      /*#__PURE__*/
-      regeneratorRuntime.mark(function _callee5(getInitialProps) {
-        var _this6 = this;
-
-        var props;
-        return regeneratorRuntime.wrap(function _callee5$(_context5) {
-          while (1) {
-            switch (_context5.prev = _context5.next) {
-              case 0:
-                (0, _utils.debug)('Store: loadInitialProps() called - loading props!');
-                _context5.prev = 1;
-                _context5.next = 4;
-                return getInitialProps();
-
-              case 4:
-                props = _context5.sent;
-                (0, _mobx.runInAction)(function () {
-                  (0, _utils.debug)('Store: fetched initial props!');
-                  (0, _mobx.set)(_this6.pageInitialProps, props);
-                });
-                _context5.next = 11;
-                break;
-
-              case 8:
-                _context5.prev = 8;
-                _context5.t0 = _context5["catch"](1);
-                (0, _mobx.runInAction)(function () {
-                  _this6.state = _this6.states.error;
-                  throw _context5.t0;
-                });
-
-              case 11:
-              case "end":
-                return _context5.stop();
-            }
-          }
-        }, _callee5, null, [[1, 8]]);
-      }));
-
-      function loadInitialProps(_x8) {
-        return _loadInitialProps.apply(this, arguments);
+    key: "getError",
+    value: function getError() {
+      if ((0, _utils.isStr)(this.error)) {
+        return this.error;
       }
 
-      return loadInitialProps;
-    }()
+      if ((0, _utils.isObj)(this.error) && 'stack' in this.error) {
+        return this.error.stack;
+      }
+
+      if ((0, _utils.isObj)(this.error) && 'message' in this.error) {
+        return this.error.message;
+      }
+
+      return null;
+    } // actions
+
   }, {
     key: "loadRoutes",
     value: function () {
       var _loadRoutes = _asyncToGenerator(
       /*#__PURE__*/
-      regeneratorRuntime.mark(function _callee6() {
-        var _this7 = this;
+      regeneratorRuntime.mark(function _callee2() {
+        var _this3 = this;
 
         var routes;
-        return regeneratorRuntime.wrap(function _callee6$(_context6) {
+        return regeneratorRuntime.wrap(function _callee2$(_context2) {
           while (1) {
-            switch (_context6.prev = _context6.next) {
+            switch (_context2.prev = _context2.next) {
               case 0:
-                _context6.prev = 0;
-                _context6.next = 3;
+                _context2.prev = 0;
+                _context2.next = 3;
                 return cms.getRoutes();
 
               case 3:
-                routes = _context6.sent;
+                routes = _context2.sent;
                 (0, _mobx.runInAction)(function () {
-                  _this7.routes = routes;
+                  _this3.routes = routes;
                 });
-                _context6.next = 10;
+                _context2.next = 10;
                 break;
 
               case 7:
-                _context6.prev = 7;
-                _context6.t0 = _context6["catch"](0);
+                _context2.prev = 7;
+                _context2.t0 = _context2["catch"](0);
                 (0, _mobx.runInAction)(function () {
-                  _this7.state = _this7.states.error;
-                  throw _context6.t0;
+                  _this3.state = _this3.states.error;
+                  _this3.error = _context2.t0;
                 });
 
               case 10:
               case "end":
-                return _context6.stop();
+                return _context2.stop();
             }
           }
-        }, _callee6, null, [[0, 7]]);
+        }, _callee2, null, [[0, 7]]);
       }));
 
       function loadRoutes() {
@@ -48643,40 +48475,40 @@ function () {
     value: function () {
       var _loadPrimaryMenu = _asyncToGenerator(
       /*#__PURE__*/
-      regeneratorRuntime.mark(function _callee7() {
-        var _this8 = this;
+      regeneratorRuntime.mark(function _callee3() {
+        var _this4 = this;
 
         var menu;
-        return regeneratorRuntime.wrap(function _callee7$(_context7) {
+        return regeneratorRuntime.wrap(function _callee3$(_context3) {
           while (1) {
-            switch (_context7.prev = _context7.next) {
+            switch (_context3.prev = _context3.next) {
               case 0:
-                _context7.prev = 0;
-                _context7.next = 3;
+                _context3.prev = 0;
+                _context3.next = 3;
                 return cms.getPrimaryMenu();
 
               case 3:
-                menu = _context7.sent;
+                menu = _context3.sent;
                 (0, _mobx.runInAction)(function () {
-                  _this8.primaryMenu = menu;
+                  _this4.primaryMenu = menu;
                 });
-                _context7.next = 10;
+                _context3.next = 10;
                 break;
 
               case 7:
-                _context7.prev = 7;
-                _context7.t0 = _context7["catch"](0);
+                _context3.prev = 7;
+                _context3.t0 = _context3["catch"](0);
                 (0, _mobx.runInAction)(function () {
-                  _this8.state = _this8.states.error;
-                  throw _context7.t0;
+                  _this4.state = _this4.states.error;
+                  _this4.error = _context3.t0;
                 });
 
               case 10:
               case "end":
-                return _context7.stop();
+                return _context3.stop();
             }
           }
-        }, _callee7, null, [[0, 7]]);
+        }, _callee3, null, [[0, 7]]);
       }));
 
       function loadPrimaryMenu() {
@@ -48686,15 +48518,223 @@ function () {
       return loadPrimaryMenu;
     }()
   }, {
-    key: "hasQueryParams",
-    get: function get() {
-      return Object.keys(this.currentQuery).length > 0;
-    }
+    key: "loadContentAndInitialProps",
+    value: function () {
+      var _loadContentAndInitialProps = _asyncToGenerator(
+      /*#__PURE__*/
+      regeneratorRuntime.mark(function _callee4(id, type, getInitialProps) {
+        var _this5 = this;
+
+        var loadContent, loadInitialProps;
+        return regeneratorRuntime.wrap(function _callee4$(_context4) {
+          while (1) {
+            switch (_context4.prev = _context4.next) {
+              case 0:
+                this.updateQueryParams();
+                (0, _utils.debug)('Store: loadContentAndInitialProps() called - loading content and initial props');
+                (0, _utils.debug)('Store: current query params: ', this.currentQuery); // clear page data 
+                // (in order to not render incorrect data on new page while new page data is loading)
+
+                this.pageData = _mobx.observable.object({});
+                (0, _utils.debug)('Store: cleared pageData'); // clear initial props
+                // (in order to not render incorrect data on new page while new page props are loading)
+
+                this.pageInitialProps = _mobx.observable.object({});
+                (0, _utils.debug)('Store: cleared pageInitialProps');
+                this.loadingPageAndProps = true;
+
+                loadContent = function loadContent() {
+                  return _this5.hasPreviewQuery() ? _this5.loadContentPreview(id, type) : _this5.loadContent(id, type);
+                };
+
+                loadInitialProps = function loadInitialProps() {
+                  return (0, _utils.isFn)(getInitialProps) ? _this5.loadInitialProps(getInitialProps) : undefined;
+                };
+
+                _context4.next = 12;
+                return Promise.all([loadContent(), loadInitialProps()]);
+
+              case 12:
+                (0, _mobx.runInAction)(function () {
+                  _this5.loadingPageAndProps = false;
+                });
+
+              case 13:
+              case "end":
+                return _context4.stop();
+            }
+          }
+        }, _callee4, this);
+      }));
+
+      function loadContentAndInitialProps(_x, _x2, _x3) {
+        return _loadContentAndInitialProps.apply(this, arguments);
+      }
+
+      return loadContentAndInitialProps;
+    }()
   }, {
-    key: "hasPreviewQuery",
-    get: function get() {
-      return this.hasQueryParams && 'preview' in this.currentQuery && this.currentQuery['preview'] === 'true';
-    }
+    key: "loadContent",
+    value: function () {
+      var _loadContent = _asyncToGenerator(
+      /*#__PURE__*/
+      regeneratorRuntime.mark(function _callee5(id, type) {
+        var _this6 = this;
+
+        var content;
+        return regeneratorRuntime.wrap(function _callee5$(_context5) {
+          while (1) {
+            switch (_context5.prev = _context5.next) {
+              case 0:
+                (0, _utils.debug)('Store: loadContent() called - loading page data ');
+
+                if (!cache.hasKey(id)) {
+                  _context5.next = 5;
+                  break;
+                }
+
+                (0, _mobx.set)(this.pageData, cache.get(id));
+                (0, _utils.debug)('Store: loadContent() - page data found in cache, returning cached data');
+                return _context5.abrupt("return");
+
+              case 5:
+                _context5.prev = 5;
+                _context5.next = 8;
+                return cms.getContent(id, type);
+
+              case 8:
+                content = _context5.sent;
+                (0, _mobx.runInAction)(function () {
+                  cache.set(id, content);
+                  (0, _mobx.set)(_this6.pageData, content);
+                  (0, _utils.debug)('Store: set pageData: ', _this6.pageData);
+                });
+                _context5.next = 15;
+                break;
+
+              case 12:
+                _context5.prev = 12;
+                _context5.t0 = _context5["catch"](5);
+                (0, _mobx.runInAction)(function () {
+                  _this6.state = _this6.states.error;
+                  _this6.error = _context5.t0;
+                });
+
+              case 15:
+              case "end":
+                return _context5.stop();
+            }
+          }
+        }, _callee5, this, [[5, 12]]);
+      }));
+
+      function loadContent(_x4, _x5) {
+        return _loadContent.apply(this, arguments);
+      }
+
+      return loadContent;
+    }()
+  }, {
+    key: "loadContentPreview",
+    value: function () {
+      var _loadContentPreview = _asyncToGenerator(
+      /*#__PURE__*/
+      regeneratorRuntime.mark(function _callee6(id, type) {
+        var _this7 = this;
+
+        var mediaId, content;
+        return regeneratorRuntime.wrap(function _callee6$(_context6) {
+          while (1) {
+            switch (_context6.prev = _context6.next) {
+              case 0:
+                mediaId = '_thumbnail_id' in this.currentQuery ? this.currentQuery['_thumbnail_id'] : -1;
+                (0, _utils.debug)('Store: loadContentPreview() called - loading PREVIEW page data ');
+                (0, _utils.debug)('Store: loadContentPreview() - will load featured media preview with media id: ', mediaId);
+                _context6.prev = 3;
+                _context6.next = 6;
+                return cms.getContentPreview(id, type, mediaId, this.wpRestNonce);
+
+              case 6:
+                content = _context6.sent;
+                (0, _mobx.runInAction)(function () {
+                  (0, _utils.debug)('Store: setting PREVIEW pageData: ', _this7.pageData);
+                  (0, _mobx.set)(_this7.pageData, content);
+                });
+                _context6.next = 13;
+                break;
+
+              case 10:
+                _context6.prev = 10;
+                _context6.t0 = _context6["catch"](3);
+                (0, _mobx.runInAction)(function () {
+                  (0, _utils.debug)('Store: loadContentPreview() FAILED, reason: ', _context6.t0);
+                  _this7.state = _this7.states.error;
+                  _this7.error = _context6.t0;
+                });
+
+              case 13:
+              case "end":
+                return _context6.stop();
+            }
+          }
+        }, _callee6, this, [[3, 10]]);
+      }));
+
+      function loadContentPreview(_x6, _x7) {
+        return _loadContentPreview.apply(this, arguments);
+      }
+
+      return loadContentPreview;
+    }()
+  }, {
+    key: "loadInitialProps",
+    value: function () {
+      var _loadInitialProps = _asyncToGenerator(
+      /*#__PURE__*/
+      regeneratorRuntime.mark(function _callee7(getInitialProps) {
+        var _this8 = this;
+
+        var props;
+        return regeneratorRuntime.wrap(function _callee7$(_context7) {
+          while (1) {
+            switch (_context7.prev = _context7.next) {
+              case 0:
+                (0, _utils.debug)('Store: loadInitialProps() called - loading props!');
+                _context7.prev = 1;
+                _context7.next = 4;
+                return getInitialProps();
+
+              case 4:
+                props = _context7.sent;
+                (0, _utils.debug)('Store: fetched initial props!');
+                (0, _mobx.runInAction)(function () {
+                  (0, _mobx.set)(_this8.pageInitialProps, props);
+                });
+                _context7.next = 12;
+                break;
+
+              case 9:
+                _context7.prev = 9;
+                _context7.t0 = _context7["catch"](1);
+                (0, _mobx.runInAction)(function () {
+                  _this8.state = _this8.states.error;
+                  _this8.error = _context7.t0;
+                });
+
+              case 12:
+              case "end":
+                return _context7.stop();
+            }
+          }
+        }, _callee7, null, [[1, 9]]);
+      }));
+
+      function loadInitialProps(_x8) {
+        return _loadInitialProps.apply(this, arguments);
+      }
+
+      return loadInitialProps;
+    }()
   }]);
 
   return Store;
@@ -48705,42 +48745,49 @@ function () {
   initializer: function initializer() {
     return this.states.loading;
   }
-}), _descriptor2 = _applyDecoratedDescriptor(_class.prototype, "routes", [_mobx.observable], {
+}), _descriptor2 = _applyDecoratedDescriptor(_class.prototype, "error", [_mobx.observable], {
+  configurable: true,
+  enumerable: true,
+  writable: true,
+  initializer: function initializer() {
+    return null;
+  }
+}), _descriptor3 = _applyDecoratedDescriptor(_class.prototype, "routes", [_mobx.observable], {
   configurable: true,
   enumerable: true,
   writable: true,
   initializer: function initializer() {
     return [];
   }
-}), _descriptor3 = _applyDecoratedDescriptor(_class.prototype, "primaryMenu", [_mobx.observable], {
+}), _descriptor4 = _applyDecoratedDescriptor(_class.prototype, "primaryMenu", [_mobx.observable], {
   configurable: true,
   enumerable: true,
   writable: true,
   initializer: function initializer() {
     return {};
   }
-}), _descriptor4 = _applyDecoratedDescriptor(_class.prototype, "content", [_mobx.observable], {
+}), _descriptor5 = _applyDecoratedDescriptor(_class.prototype, "loadingPageAndProps", [_mobx.observable], {
+  configurable: true,
+  enumerable: true,
+  writable: true,
+  initializer: function initializer() {
+    return false;
+  }
+}), _descriptor6 = _applyDecoratedDescriptor(_class.prototype, "pageData", [_mobx.observable], {
   configurable: true,
   enumerable: true,
   writable: true,
   initializer: function initializer() {
     return _mobx.observable.object({});
   }
-}), _descriptor5 = _applyDecoratedDescriptor(_class.prototype, "pageData", [_mobx.observable], {
+}), _descriptor7 = _applyDecoratedDescriptor(_class.prototype, "pageInitialProps", [_mobx.observable], {
   configurable: true,
   enumerable: true,
   writable: true,
   initializer: function initializer() {
     return _mobx.observable.object({});
   }
-}), _descriptor6 = _applyDecoratedDescriptor(_class.prototype, "pageInitialProps", [_mobx.observable], {
-  configurable: true,
-  enumerable: true,
-  writable: true,
-  initializer: function initializer() {
-    return _mobx.observable.object({});
-  }
-}), _applyDecoratedDescriptor(_class.prototype, "bootstrap", [_mobx.action], Object.getOwnPropertyDescriptor(_class.prototype, "bootstrap"), _class.prototype), _applyDecoratedDescriptor(_class.prototype, "loadContentAndInitialProps", [_mobx.action], Object.getOwnPropertyDescriptor(_class.prototype, "loadContentAndInitialProps"), _class.prototype), _applyDecoratedDescriptor(_class.prototype, "loadContent", [_mobx.action], Object.getOwnPropertyDescriptor(_class.prototype, "loadContent"), _class.prototype), _applyDecoratedDescriptor(_class.prototype, "loadContentPreview", [_mobx.action], Object.getOwnPropertyDescriptor(_class.prototype, "loadContentPreview"), _class.prototype), _applyDecoratedDescriptor(_class.prototype, "loadInitialProps", [_mobx.action], Object.getOwnPropertyDescriptor(_class.prototype, "loadInitialProps"), _class.prototype), _applyDecoratedDescriptor(_class.prototype, "loadRoutes", [_mobx.action], Object.getOwnPropertyDescriptor(_class.prototype, "loadRoutes"), _class.prototype), _applyDecoratedDescriptor(_class.prototype, "loadPrimaryMenu", [_mobx.action], Object.getOwnPropertyDescriptor(_class.prototype, "loadPrimaryMenu"), _class.prototype)), _class);
+}), _applyDecoratedDescriptor(_class.prototype, "bootstrap", [_mobx.action], Object.getOwnPropertyDescriptor(_class.prototype, "bootstrap"), _class.prototype), _applyDecoratedDescriptor(_class.prototype, "loadRoutes", [_mobx.action], Object.getOwnPropertyDescriptor(_class.prototype, "loadRoutes"), _class.prototype), _applyDecoratedDescriptor(_class.prototype, "loadPrimaryMenu", [_mobx.action], Object.getOwnPropertyDescriptor(_class.prototype, "loadPrimaryMenu"), _class.prototype), _applyDecoratedDescriptor(_class.prototype, "loadContentAndInitialProps", [_mobx.action], Object.getOwnPropertyDescriptor(_class.prototype, "loadContentAndInitialProps"), _class.prototype), _applyDecoratedDescriptor(_class.prototype, "loadContent", [_mobx.action], Object.getOwnPropertyDescriptor(_class.prototype, "loadContent"), _class.prototype), _applyDecoratedDescriptor(_class.prototype, "loadContentPreview", [_mobx.action], Object.getOwnPropertyDescriptor(_class.prototype, "loadContentPreview"), _class.prototype), _applyDecoratedDescriptor(_class.prototype, "loadInitialProps", [_mobx.action], Object.getOwnPropertyDescriptor(_class.prototype, "loadInitialProps"), _class.prototype)), _class);
 var _default = Store;
 exports.default = _default;
 },{"mobx":"6uYi","query-string":"/Fvp","../utils":"jWsf","../config":"yMXu","../services/cms":"CJ63","../services/cache":"q5ME"}],"rMii":[function(require,module,exports) {
@@ -48773,31 +48820,9 @@ function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj;
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-var storeContext = _react.default.createContext();
-
 var defaultStore = new _Store.default();
 
-var dehydrate = function dehydrate(store) {
-  return base64.encode((0, _jsonStringifySafe.default)((0, _mobx.toJS)(store, true)));
-};
-
-exports.dehydrate = dehydrate;
-
-var rehydrate = function rehydrate(storeJson) {
-  return JSON.parse(base64.decode(storeJson));
-};
-
-exports.rehydrate = rehydrate;
-
-if ("client" === 'client' // hydrate ssr 
-&& (0, _utils.definedNotNull)(window.__FROJD_STATE)) {
-  var state = rehydrate(window.__FROJD_STATE);
-  defaultStore = new _Store.default(state);
-  (0, _utils.debug)('Hydrated store with state: ', state);
-} else if ("client" === 'client') {
-  // ssr failed/not available, start bootstrap
-  defaultStore.bootstrap();
-}
+var storeContext = _react.default.createContext();
 
 var StoreProvider = function StoreProvider(_ref) {
   var store = _ref.store,
@@ -48822,6 +48847,18 @@ var MockStoreProvider = function MockStoreProvider(_ref2) {
 
 exports.MockStoreProvider = MockStoreProvider;
 
+var dehydrate = function dehydrate(store) {
+  return base64.encode((0, _jsonStringifySafe.default)((0, _mobx.toJS)(store, true)));
+};
+
+exports.dehydrate = dehydrate;
+
+var rehydrate = function rehydrate(storeJson) {
+  return JSON.parse(base64.decode(storeJson));
+};
+
+exports.rehydrate = rehydrate;
+
 var useStore = function useStore() {
   var store = _react.default.useContext(storeContext);
 
@@ -48833,6 +48870,16 @@ var useStore = function useStore() {
 };
 
 exports.useStore = useStore;
+
+if ("client" === 'client' // hydrate ssr 
+&& (0, _utils.definedNotNull)(window.__FROJD_STATE)) {
+  var state = rehydrate(window.__FROJD_STATE);
+  defaultStore = new _Store.default(state);
+  (0, _utils.debug)('Hydrated store with state: ', state);
+} else if ("client" === 'client') {
+  // ssr failed/not available, start bootstrap
+  defaultStore.bootstrap();
+}
 },{"react":"1n8/","mobx":"6uYi","json-stringify-safe":"LFj2","base64util":"fCnk","../utils":"jWsf","./Store":"P17R"}],"4+GV":[function(require,module,exports) {
 "use strict";
 
@@ -49409,10 +49456,15 @@ var _reactHelmetAsync = require("react-helmet-async");
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-var NotFound = function NotFound() {
-  return _react.default.createElement(_react.default.Fragment, null, _react.default.createElement(_reactHelmetAsync.Helmet, null, _react.default.createElement("title", null, "404")), _react.default.createElement("div", null, _react.default.createElement("h1", null, "404"), _react.default.createElement("p", null, "The page could not be found")));
+// import PropTypes from 'prop-types';
+var NotFound = function NotFound(_ref) {
+  var message = _ref.message;
+  return _react.default.createElement(_react.default.Fragment, null, _react.default.createElement(_reactHelmetAsync.Helmet, null, _react.default.createElement("title", null, "404")), _react.default.createElement("div", null, _react.default.createElement("h1", null, "404"), _react.default.createElement("p", null, message)));
 };
 
+NotFound.defaultProps = {
+  message: 'The page could not be found'
+};
 var _default = NotFound;
 exports.default = _default;
 },{"react":"1n8/","react-helmet-async":"2FKu"}],"qI17":[function(require,module,exports) {
@@ -49835,7 +49887,8 @@ function asyncGeneratorStep(gen, resolve, reject, _next, _throw, key, arg) { try
 function _asyncToGenerator(fn) { return function () { var self = this, args = arguments; return new Promise(function (resolve, reject) { var gen = fn.apply(self, args); function _next(value) { asyncGeneratorStep(gen, resolve, reject, _next, _throw, "next", value); } function _throw(err) { asyncGeneratorStep(gen, resolve, reject, _next, _throw, "throw", err); } _next(undefined); }); }; }
 
 var Recipe = (0, _mobxReactLite.observer)(function (_ref) {
-  var id = _ref.id,
+  var loading = _ref.loading,
+      id = _ref.id,
       url = _ref.url,
       pageData = _ref.pageData,
       initialProps = _ref.initialProps;
@@ -49845,7 +49898,7 @@ var Recipe = (0, _mobxReactLite.observer)(function (_ref) {
       recipeScore = pageData.recipeScore,
       blocks = pageData.blocks;
   var date = initialProps.date;
-  return _react.default.createElement(_react.default.Fragment, null, _react.default.createElement(_reactHelmetAsync.Helmet, null, _react.default.createElement("title", null, "Recipe Page")), _react.default.createElement("div", null, _react.default.createElement("h1", null, "Recept: ", title), _react.default.createElement("h3", null, "date initial prop: ", date), _react.default.createElement("h4", null, "Score: ", recipeScore ? recipeScore : 'saknas'), featuredImage && _react.default.createElement("img", {
+  return _react.default.createElement(_react.default.Fragment, null, _react.default.createElement(_reactHelmetAsync.Helmet, null, _react.default.createElement("title", null, "Recipe Page")), _react.default.createElement("div", null, loading && _react.default.createElement("h1", null, "LOADING PAGE & PROPS!"), _react.default.createElement("h1", null, "Recept: ", title), _react.default.createElement("h3", null, "date initial prop: ", date), _react.default.createElement("h4", null, "Score: ", recipeScore ? recipeScore : 'saknas'), featuredImage && _react.default.createElement("img", {
     src: featuredImage.sizes.thumbnail.url
   }), _react.default.createElement("p", null, "id: ", id), _react.default.createElement("p", null, "url: ", url), _react.default.createElement(_RawHtml.default, {
     html: content
@@ -49903,7 +49956,7 @@ Object.defineProperty(exports, "__esModule", {
 });
 exports.default = void 0;
 
-var _react = _interopRequireWildcard(require("react"));
+var _react = _interopRequireDefault(require("react"));
 
 var _reactRouterDom = require("react-router-dom");
 
@@ -49930,8 +49983,6 @@ var _Recipe = _interopRequireDefault(require("./pages/Recipe"));
 var _utils = require("./utils");
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) { var desc = Object.defineProperty && Object.getOwnPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : {}; if (desc.get || desc.set) { Object.defineProperty(newObj, key, desc); } else { newObj[key] = obj[key]; } } } } newObj.default = obj; return newObj; } }
 
 function _extends() { _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; }; return _extends.apply(this, arguments); }
 
@@ -49964,6 +50015,7 @@ var App = (0, _mobxReactLite.observer)(function (_ref, ref) {
       ssr = _ref$ssr === void 0 ? false : _ref$ssr;
   var store = (0, _store.useStore)(); // trigger a rerender when these props are changed (mobx4 :/)
 
+  store.loadingPageAndProps;
   (0, _mobx.values)(store.pageData);
   (0, _mobx.values)(store.pageInitialProps);
 
@@ -49972,7 +50024,7 @@ var App = (0, _mobxReactLite.observer)(function (_ref, ref) {
   }
 
   if (store.state === store.states.error) {
-    return _react.default.createElement("div", null, "An error occured!");
+    return _react.default.createElement("div", null, _react.default.createElement("h3", null, "An error occured:"), _react.default.createElement("code", null, store.getError()));
   }
 
   var renderRoute = function renderRoute(props, route) {
@@ -50001,6 +50053,7 @@ var App = (0, _mobxReactLite.observer)(function (_ref, ref) {
       id: route.id,
       type: route.postType,
       url: route.url,
+      loading: store.loadingPageAndProps,
       pageData: store.pageData,
       initialProps: store.pageInitialProps
     }, props));

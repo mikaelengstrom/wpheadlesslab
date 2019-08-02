@@ -153,7 +153,7 @@ const getContentPreview = async (id, type, previewMediaId, nonce) => {
     debug('CMS: received post revision list: ', revs);
 
     [featuredImage, pageData] = await Promise.all([
-        previewMediaId > 0 
+        previewMediaId > -1
             ? getMedia(previewMediaId, nonce)
             : undefined, 
         getRevision(id, type, revs[0].id, nonce)

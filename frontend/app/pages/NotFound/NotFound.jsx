@@ -1,8 +1,9 @@
 import React from 'react';
+// import PropTypes from 'prop-types';
 
 import { Helmet } from 'react-helmet-async';
 
-const NotFound = () => {
+const NotFound = ({ message }) => {
     return (
         <>
             <Helmet>
@@ -11,10 +12,15 @@ const NotFound = () => {
 
             <div>
                 <h1>404</h1>
-                <p>The page could not be found</p> 
+                <p>{message}</p> 
             </div>
         </>
     );
 };
+
+NotFound.defaultProps = {
+    message: 'The page could not be found'
+};
+
 
 export default NotFound;

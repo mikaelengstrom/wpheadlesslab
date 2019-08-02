@@ -1,7 +1,7 @@
 import { debug } from '../utils';
 
 const generalConfig = {
-    cacheTtl: 30 * 1000
+    cacheTtl: 5 * 1000 //30 * 1000
 }
 
 const devDefaultConfig = {

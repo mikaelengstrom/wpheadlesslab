@@ -37,6 +37,7 @@ if (process.env.BABEL_ENV === 'client'
     debug('Client Renderer: rendering app!')
     ReactDOM.render(app, element);
 }
+
 if (module.hot) {
     module.hot.accept();
 }

@@ -1,7 +1,5 @@
 
-import React, { 
-    useEffect
-} from 'react';
+import React from 'react';
 
 import { 
     Switch, 
@@ -66,6 +64,7 @@ const App = observer(({ ssr = false }, ref) => {
     let store = useStore();
 
     // trigger a rerender when these props are changed (mobx4 :/)
+    store.loadingPageAndProps;
     values(store.pageData); 
     values(store.pageInitialProps);
 
@@ -77,7 +76,10 @@ const App = observer(({ ssr = false }, ref) => {
 
     if (store.state === store.states.error) {
         return (
-            <div>An error occured!</div>
+            <div>
+                <h3>An error occured:</h3> 
+                <code>{store.getError()}</code>
+            </div>
         );
     }
 
@@ -123,6 +125,7 @@ const App = observer(({ ssr = false }, ref) => {
                 type={route.postType}
                 url={route.url}
 
+                loading={store.loadingPageAndProps}
                 pageData={store.pageData}
                 initialProps={store.pageInitialProps}
 
