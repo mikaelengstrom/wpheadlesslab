@@ -9,7 +9,7 @@ import RawHtml from '../../components/RawHtml';
 import * as cms from '../../services/cms';
 
 const Recipe = observer(({ loading, id, url, pageData, initialProps }) => {
-    const { title, content, featuredImage, recipeScore, blocks } = pageData; 
+    const { title, content, featuredImage, recipeScore, recipeCategory, blocks } = pageData; 
     const { date } = initialProps; 
 
     return (
@@ -21,10 +21,20 @@ const Recipe = observer(({ loading, id, url, pageData, initialProps }) => {
                 {loading &&
                     <h1>LOADING PAGE & PROPS!</h1>
                 }
-                
+
                 <h1>Recept: {title}</h1>
                 <h3>date initial prop: {date}</h3>
-                <h4>Score: {recipeScore ? recipeScore : 'saknas'}</h4>
+
+                {recipeCategory && 
+                    <>
+                        <h4>Recipe categories: </h4>
+                        {recipeCategory.map((cat) =>
+                            <p key={cat.slug}>{cat.name}</p>
+                        )}
+                    </>
+                }
+
+                <h4>Score: {recipeScore ? recipeScore : 'missing'}</h4>
 
                 {featuredImage &&
                     <img src={featuredImage.sizes.thumbnail.url} />

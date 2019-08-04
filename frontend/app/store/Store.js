@@ -13,6 +13,7 @@ import {
     isFn, 
     isStr,
     isObj,
+    runningInBrowser,
     debug
 } from '../utils';
 
@@ -66,7 +67,7 @@ class Store {
     async bootstrap() {
         debug('Store: bootstrapping!');
 
-        if (process.env.BABEL_ENV === 'client') {
+        if (runningInBrowser()) {
             this.wpRestNonce = window.__FROJD_SETTINGS 
                 && window.__FROJD_SETTINGS.wpRestNonce
                     ? window.__FROJD_SETTINGS.wpRestNonce 
@@ -113,7 +114,7 @@ class Store {
     }
 
     updateQueryParams() {
-        if (process.env.BABEL_ENV === 'client') {
+        if (runningInBrowser()) {
             this.setQueryParams(queryString.parse(window.location.search));
         }
     }
@@ -211,6 +212,7 @@ class Store {
         debug('Store: loadContent() called - loading page data '); 
 
         if(cache.hasKey(id)) {
+            this.pageData = observable.object({});
             set(this.pageData, cache.get(id));
             debug('Store: loadContent() - page data found in cache, returning cached data');
             return;
@@ -220,6 +222,7 @@ class Store {
             const content = await cms.getContent(id, type);
 
             runInAction(() => {
+                this.pageData = observable.object({}); 
                 cache.set(id, content);
                 set(this.pageData, content);
 

@@ -12,6 +12,15 @@ const debug = (...msg) => debugState
     ? console.warn(...msg)
     : undefined; 
 
+const runningInBrowser = () => 
+    process.env.BABEL_ENV === 'client';
+
+const runningOnServer = () => 
+    process.env.BABEL_ENV === 'server';
+
+const isDevEnv = () => 
+    process.env.NODE_ENV === 'development'; 
+
 // ranges
 
 const range = (...args) => {
@@ -65,7 +74,10 @@ export {
     isArray,
     isObj,
     isStr,
-    debug, 
+    debug,
+    runningInBrowser,
+    runningOnServer, 
+    isDevEnv,
     range,
     reverse,
     zip,

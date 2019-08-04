@@ -18,24 +18,24 @@ use Roots\Sage\Template\Wrapper;
 //     ]) : $display;
 // });
 
-/**
- * Add <body> classes
- */
-add_filter('body_class', function (array $classes) {
-    // Add page slug if it doesn't exist
-    if (is_single() || is_page() && !is_front_page()) {
-        if (!in_array(basename(get_permalink()), $classes)) {
-            $classes[] = basename(get_permalink());
-        }
-    }
+// /**
+//  * Add <body> classes
+//  */
+// add_filter('body_class', function (array $classes) {
+//     // Add page slug if it doesn't exist
+//     if (is_single() || is_page() && !is_front_page()) {
+//         if (!in_array(basename(get_permalink()), $classes)) {
+//             $classes[] = basename(get_permalink());
+//         }
+//     }
 
-    // Add class if sidebar is active
-    if (display_sidebar()) {
-        $classes[] = 'sidebar-primary';
-    }
+//     // Add class if sidebar is active
+//     if (display_sidebar()) {
+//         $classes[] = 'sidebar-primary';
+//     }
 
-    return $classes;
-});
+//     return $classes;
+// });
 
 /**
  * Add "… Continued" to the excerpt
@@ -79,29 +79,29 @@ add_filter('sanitize_file_name', function($filename) {
     return preg_replace('/[^a-zA-Z0-9-_\.]/', '', $filename);
 }, 20);
 
-/**
- * Filter and remove WP image wrappers, replace with custom markup
- */
-add_filter('the_content', function($content, $preg = true) {
-    if(!$preg)
-        return $content;
+// /**
+//  * Filter and remove WP image wrappers, replace with custom markup
+//  */
+// add_filter('the_content', function($content, $preg = true) {
+//     if(!$preg)
+//         return $content;
 
-    $new = preg_replace('/<p>(.*<iframe.*>.*<\/iframe>.*)<\/p>/i', '<div class="iframe">$1</div>', $content);
+//     $new = preg_replace('/<p>(.*<iframe.*>.*<\/iframe>.*)<\/p>/i', '<div class="iframe">$1</div>', $content);
 
-    if(empty($new)) // Make sure content is returned even if it preg_replace gives an error
-       return $content;
+//     if(empty($new)) // Make sure content is returned even if it preg_replace gives an error
+//        return $content;
 
-   return $new;
-});
+//    return $new;
+// });
 
-add_filter('get_the_excerpt', function($str, $post = null) {
-    if(has_excerpt($post))
-        return $str;
+// add_filter('get_the_excerpt', function($str, $post = null) {
+//     if(has_excerpt($post))
+//         return $str;
 
-    $preamble = wp_strip_all_tags(get_field('preamble', $post->ID), true);
-    if(!empty($preamble))
-        return $preamble;
+//     $preamble = wp_strip_all_tags(get_field('preamble', $post->ID), true);
+//     if(!empty($preamble))
+//         return $preamble;
 
-    return $str;
-}, 10, 2);
+//     return $str;
+// }, 10, 2);
 

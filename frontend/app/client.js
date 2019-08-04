@@ -28,9 +28,7 @@ const app = (
 
 );
 
-if (process.env.BABEL_ENV === 'client'
-    && definedNotNull(window.__FROJD_STATE)) 
-{
+if (definedNotNull(window.__FROJD_STATE)) {
     debug('Client Renderer: hydrating app!')
     ReactDOM.hydrate(app, element);
 } else {

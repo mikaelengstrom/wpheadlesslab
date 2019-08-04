@@ -6,7 +6,8 @@ import * as base64 from 'base64util';
 
 import { 
     definedNotNull,
-    debug
+    debug,
+    runningInBrowser
 } from '../utils';
 
 import Store from './Store';
@@ -56,15 +57,14 @@ const useStore = () => {
     return store;
 }
 
-
-if (process.env.BABEL_ENV === 'client' // hydrate ssr 
-    && definedNotNull(window.__FROJD_STATE)) 
-{
+// hydrate ssr 
+if (runningInBrowser() && definedNotNull(window.__FROJD_STATE)) {
     let state = rehydrate(window.__FROJD_STATE);
     defaultStore = new Store(state);
 
     debug('Hydrated store with state: ', state);
-} else if (process.env.BABEL_ENV === 'client') { // ssr failed/not available, start bootstrap
+} else if (runningInBrowser()) { // ssr failed/not available, start bootstrap
+    debug('Could not find dehydrated state, bootstrapping store!');
     defaultStore.bootstrap();
 }
 

@@ -1,4 +1,3 @@
-
 import React from 'react';
 
 import { 
@@ -7,11 +6,12 @@ import {
     withRouter,
 } from 'react-router-dom';
 
-import { values } from 'mobx';
-
 import { observer } from 'mobx-react-lite';
 import { useStore } from './store';
-import { usePrevious } from './hooks';
+
+import { 
+    usePrevious, 
+} from './hooks';
 
 import Header from './layout/Header';
 import NotFound from './pages/NotFound';
@@ -30,8 +30,25 @@ const pageComponents = {
     'Recipe': Recipe
 };
 
+const updateWpAdminBarEditButtonWithId = (pageId) => {
+    const wrapEl = document.getElementById('wp-admin-bar-edit');
+    if(!wrapEl) {
+        return; 
+    }
+
+    const linkEl = wrapEl.getElementsByTagName('a')[0];
+    const editUrl = linkEl.href;
+
+    const editRegex = /(.*)(post=)(\d+)(.*)/;
+    if (editUrl.match(editRegex)) {
+        const updatedEditUrl = editUrl.replace(editRegex, `$1$2${pageId}$4`);
+        linkEl.href = updatedEditUrl;
+        debug('App> updateWpAdminBarEditButtonWithId() - updating edit button id to: ', pageId);
+    }
+}
+
 const LocationSwitch = withRouter((props) => {
-    let store = useStore();
+    const store = useStore();
 
     const { children } = props; 
     const prevProps = usePrevious(props);
@@ -65,8 +82,8 @@ const App = observer(({ ssr = false }, ref) => {
 
     // trigger a rerender when these props are changed (mobx4 :/)
     store.loadingPageAndProps;
-    values(store.pageData); 
-    values(store.pageInitialProps);
+    store.pageData;
+    store.pageInitialProps;
 
     if(store.state === store.states.loading) {
         return (
@@ -115,6 +132,8 @@ const App = observer(({ ssr = false }, ref) => {
                 route.postType, 
                 PageComponent.getInitialProps
             );
+
+            updateWpAdminBarEditButtonWithId(route.id);
         }
 
         debug('App> current loaded pageData: ', store.pageData);

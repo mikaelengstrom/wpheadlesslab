@@ -3,5 +3,5 @@ import useForceSsrLoad from './use-force-ssr-load';
 
 export {
     usePrevious,
-    useForceSsrLoad
+    useForceSsrLoad,
 }

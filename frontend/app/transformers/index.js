@@ -3,6 +3,8 @@ import traverse from 'traverse';
 
 import { 
     isStr,
+    isArray, 
+    flatten
 } from '../utils';
 
 import config from '../config';
@@ -67,6 +69,23 @@ const featuredImageTransformer = (data) => {
     }
 }
 
+const taxonomyTermTransformer = (terms) => {
+    const newTerms = flatten(terms)
+        .reduce((fixedTerms, term) => {
+            const tax = term['taxonomy'];
+
+            if(!(tax in fixedTerms)) {
+                fixedTerms[tax] = []; 
+            }
+
+            fixedTerms[tax].push(term);
+
+            return fixedTerms; 
+        }, {});
+
+    return camelcaseKeys(newTerms);
+};
+
 // this function will remove all wp post props except those we need and convert all keys to camel case, 
 // the final object will look something like this: 
 // 
@@ -93,12 +112,21 @@ const pageDataTransformer = (data) => {
     const featuredImage = data['_embedded'] && data['_embedded']['wp:featuredmedia']
         ? featuredImageTransformer(data['_embedded']['wp:featuredmedia'][0])
         : null;
-    
+
+    const taxonomies = data['_embedded'] && data['_embedded']['wp:term']
+        ? taxonomyTermTransformer(data['_embedded']['wp:term'])
+        : null; 
+
     const keysToRemove = ['guid', 'featured_media', 'template', '_links', 'link', '_embedded']; 
 
     let pageData = Object.keys(data)
         .reduce((newData, key) => {
-            if(keysToRemove.indexOf(key) === -1) {
+            if (keysToRemove.indexOf(key) === -1 && data[key]) {
+                // don't include empty arrays 
+                if (isArray(data[key]) && data[key].length === 0) {
+                    return newData; 
+                }
+
                 newData[key] = data[key];
                 
                 traverse(newData[key]).forEach(function (item) {
@@ -111,10 +139,11 @@ const pageDataTransformer = (data) => {
 
     pageData = {
         ...camelcaseKeys(pageData, { deep: true }), 
+        ...taxonomies,
         title: data.title.rendered, 
         excerpt: data.excerpt.rendered, 
         content: data.content.rendered,
-        featuredImage 
+        featuredImage,
     };
 
     return pageData; 

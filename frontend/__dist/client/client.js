@@ -44520,7 +44520,7 @@ bindProto(String.prototype);
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-exports.pluckRandom = exports.random = exports.flatten = exports.zip = exports.reverse = exports.range = exports.debug = exports.isStr = exports.isObj = exports.isArray = exports.isFn = exports.definedNotNull = exports.defined = void 0;
+exports.pluckRandom = exports.random = exports.flatten = exports.zip = exports.reverse = exports.range = exports.isDevEnv = exports.runningOnServer = exports.runningInBrowser = exports.debug = exports.isStr = exports.isObj = exports.isArray = exports.isFn = exports.definedNotNull = exports.defined = void 0;
 
 function _toConsumableArray(arr) { return _arrayWithoutHoles(arr) || _iterableToArray(arr) || _nonIterableSpread(); }
 
@@ -44584,10 +44584,28 @@ var debug = function debug() {
   var _console;
 
   return debugState ? (_console = console).warn.apply(_console, arguments) : undefined;
+};
+
+exports.debug = debug;
+
+var runningInBrowser = function runningInBrowser() {
+  return "client" === 'client';
+};
+
+exports.runningInBrowser = runningInBrowser;
+
+var runningOnServer = function runningOnServer() {
+  return "client" === 'server';
+};
+
+exports.runningOnServer = runningOnServer;
+
+var isDevEnv = function isDevEnv() {
+  return "development" === 'development';
 }; // ranges
 
 
-exports.debug = debug;
+exports.isDevEnv = isDevEnv;
 
 var range = function range() {
   for (var _len = arguments.length, args = new Array(_len), _key = 0; _key < _len; _key++) {
@@ -45095,14 +45113,13 @@ function _objectSpread(target) { for (var i = 1; i < arguments.length; i++) { va
 function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
 
 var generalConfig = {
-  cacheTtl: 5 * 1000 //30 * 1000
-
+  cacheTtl: 5 * 1000
 };
 var devDefaultConfig = {
   wpHome: 'http://repress.dev.test:8880',
-  appBase: "client" === 'server' && "development" === 'development' ? 'http://web' : 'http://repress.dev.test:8880'
+  appBase: (0, _utils.runningOnServer)() && (0, _utils.isDevEnv)() ? 'http://web' : 'http://repress.dev.test:8880'
 };
-var wpInjectedConfig = "client" === 'client' && window && window.__FROJD_SETTINGS ? window.__FROJD_SETTINGS : {};
+var wpInjectedConfig = (0, _utils.runningInBrowser)() && window.__FROJD_SETTINGS ? window.__FROJD_SETTINGS : {};
 
 var config = _objectSpread({}, generalConfig, {}, devDefaultConfig, {}, wpInjectedConfig);
 
@@ -46154,6 +46171,22 @@ var featuredImageTransformer = function featuredImageTransformer(data) {
     mimeType: imageData.mimeType,
     sizes: imageSizeTransformer(imageData.mediaDetails.sizes)
   };
+};
+
+exports.featuredImageTransformer = featuredImageTransformer;
+
+var taxonomyTermTransformer = function taxonomyTermTransformer(terms) {
+  var newTerms = (0, _utils.flatten)(terms).reduce(function (fixedTerms, term) {
+    var tax = term['taxonomy'];
+
+    if (!(tax in fixedTerms)) {
+      fixedTerms[tax] = [];
+    }
+
+    fixedTerms[tax].push(term);
+    return fixedTerms;
+  }, {});
+  return (0, _camelcaseKeys.default)(newTerms);
 }; // this function will remove all wp post props except those we need and convert all keys to camel case, 
 // the final object will look something like this: 
 // 
@@ -46177,13 +46210,17 @@ var featuredImageTransformer = function featuredImageTransformer(data) {
 // }
 
 
-exports.featuredImageTransformer = featuredImageTransformer;
-
 var pageDataTransformer = function pageDataTransformer(data) {
   var featuredImage = data['_embedded'] && data['_embedded']['wp:featuredmedia'] ? featuredImageTransformer(data['_embedded']['wp:featuredmedia'][0]) : null;
+  var taxonomies = data['_embedded'] && data['_embedded']['wp:term'] ? taxonomyTermTransformer(data['_embedded']['wp:term']) : null;
   var keysToRemove = ['guid', 'featured_media', 'template', '_links', 'link', '_embedded'];
   var pageData = Object.keys(data).reduce(function (newData, key) {
-    if (keysToRemove.indexOf(key) === -1) {
+    if (keysToRemove.indexOf(key) === -1 && data[key]) {
+      // don't include empty arrays 
+      if ((0, _utils.isArray)(data[key]) && data[key].length === 0) {
+        return newData;
+      }
+
       newData[key] = data[key];
       (0, _traverse.default)(newData[key]).forEach(function (item) {
         this.update(transformToRelativeUrl(item));
@@ -46194,7 +46231,7 @@ var pageDataTransformer = function pageDataTransformer(data) {
   }, {});
   pageData = _objectSpread({}, (0, _camelcaseKeys.default)(pageData, {
     deep: true
-  }), {
+  }), {}, taxonomies, {
     title: data.title.rendered,
     excerpt: data.excerpt.rendered,
     content: data.content.rendered,
@@ -48343,7 +48380,7 @@ function () {
               case 0:
                 (0, _utils.debug)('Store: bootstrapping!');
 
-                if ("client" === 'client') {
+                if ((0, _utils.runningInBrowser)()) {
                   this.wpRestNonce = window.__FROJD_SETTINGS && window.__FROJD_SETTINGS.wpRestNonce ? window.__FROJD_SETTINGS.wpRestNonce : 'NONE';
                   (0, _utils.debug)('Store: using injected wp rest nonce: ', this.wpRestNonce);
                 }
@@ -48401,7 +48438,7 @@ function () {
   }, {
     key: "updateQueryParams",
     value: function updateQueryParams() {
-      if ("client" === 'client') {
+      if ((0, _utils.runningInBrowser)()) {
         this.setQueryParams(_queryString.default.parse(window.location.search));
       }
     }
@@ -48589,43 +48626,45 @@ function () {
                 (0, _utils.debug)('Store: loadContent() called - loading page data ');
 
                 if (!cache.hasKey(id)) {
-                  _context5.next = 5;
+                  _context5.next = 6;
                   break;
                 }
 
+                this.pageData = _mobx.observable.object({});
                 (0, _mobx.set)(this.pageData, cache.get(id));
                 (0, _utils.debug)('Store: loadContent() - page data found in cache, returning cached data');
                 return _context5.abrupt("return");
 
-              case 5:
-                _context5.prev = 5;
-                _context5.next = 8;
+              case 6:
+                _context5.prev = 6;
+                _context5.next = 9;
                 return cms.getContent(id, type);
 
-              case 8:
+              case 9:
                 content = _context5.sent;
                 (0, _mobx.runInAction)(function () {
+                  _this6.pageData = _mobx.observable.object({});
                   cache.set(id, content);
                   (0, _mobx.set)(_this6.pageData, content);
                   (0, _utils.debug)('Store: set pageData: ', _this6.pageData);
                 });
-                _context5.next = 15;
+                _context5.next = 16;
                 break;
 
-              case 12:
-                _context5.prev = 12;
-                _context5.t0 = _context5["catch"](5);
+              case 13:
+                _context5.prev = 13;
+                _context5.t0 = _context5["catch"](6);
                 (0, _mobx.runInAction)(function () {
                   _this6.state = _this6.states.error;
                   _this6.error = _context5.t0;
                 });
 
-              case 15:
+              case 16:
               case "end":
                 return _context5.stop();
             }
           }
-        }, _callee5, this, [[5, 12]]);
+        }, _callee5, this, [[6, 13]]);
       }));
 
       function loadContent(_x4, _x5) {
@@ -48867,17 +48906,18 @@ var useStore = function useStore() {
   }
 
   return store;
-};
+}; // hydrate ssr 
+
 
 exports.useStore = useStore;
 
-if ("client" === 'client' // hydrate ssr 
-&& (0, _utils.definedNotNull)(window.__FROJD_STATE)) {
+if ((0, _utils.runningInBrowser)() && (0, _utils.definedNotNull)(window.__FROJD_STATE)) {
   var state = rehydrate(window.__FROJD_STATE);
   defaultStore = new _Store.default(state);
   (0, _utils.debug)('Hydrated store with state: ', state);
-} else if ("client" === 'client') {
+} else if ((0, _utils.runningInBrowser)()) {
   // ssr failed/not available, start bootstrap
+  (0, _utils.debug)('Could not find dehydrated state, bootstrapping store!');
   defaultStore.bootstrap();
 }
 },{"react":"1n8/","mobx":"6uYi","json-stringify-safe":"LFj2","base64util":"fCnk","../utils":"jWsf","./Store":"P17R"}],"4+GV":[function(require,module,exports) {
@@ -49896,9 +49936,14 @@ var Recipe = (0, _mobxReactLite.observer)(function (_ref) {
       content = pageData.content,
       featuredImage = pageData.featuredImage,
       recipeScore = pageData.recipeScore,
+      recipeCategory = pageData.recipeCategory,
       blocks = pageData.blocks;
   var date = initialProps.date;
-  return _react.default.createElement(_react.default.Fragment, null, _react.default.createElement(_reactHelmetAsync.Helmet, null, _react.default.createElement("title", null, "Recipe Page")), _react.default.createElement("div", null, loading && _react.default.createElement("h1", null, "LOADING PAGE & PROPS!"), _react.default.createElement("h1", null, "Recept: ", title), _react.default.createElement("h3", null, "date initial prop: ", date), _react.default.createElement("h4", null, "Score: ", recipeScore ? recipeScore : 'saknas'), featuredImage && _react.default.createElement("img", {
+  return _react.default.createElement(_react.default.Fragment, null, _react.default.createElement(_reactHelmetAsync.Helmet, null, _react.default.createElement("title", null, "Recipe Page")), _react.default.createElement("div", null, loading && _react.default.createElement("h1", null, "LOADING PAGE & PROPS!"), _react.default.createElement("h1", null, "Recept: ", title), _react.default.createElement("h3", null, "date initial prop: ", date), recipeCategory && _react.default.createElement(_react.default.Fragment, null, _react.default.createElement("h4", null, "Recipe categories: "), recipeCategory.map(function (cat) {
+    return _react.default.createElement("p", {
+      key: cat.slug
+    }, cat.name);
+  })), _react.default.createElement("h4", null, "Score: ", recipeScore ? recipeScore : 'missing'), featuredImage && _react.default.createElement("img", {
     src: featuredImage.sizes.thumbnail.url
   }), _react.default.createElement("p", null, "id: ", id), _react.default.createElement("p", null, "url: ", url), _react.default.createElement(_RawHtml.default, {
     html: content
@@ -49960,8 +50005,6 @@ var _react = _interopRequireDefault(require("react"));
 
 var _reactRouterDom = require("react-router-dom");
 
-var _mobx = require("mobx");
-
 var _mobxReactLite = require("mobx-react-lite");
 
 var _store = require("./store");
@@ -49992,6 +50035,25 @@ var pageComponents = {
   'Post': _Post.default,
   'Recipe': _Recipe.default
 };
+
+var updateWpAdminBarEditButtonWithId = function updateWpAdminBarEditButtonWithId(pageId) {
+  var wrapEl = document.getElementById('wp-admin-bar-edit');
+
+  if (!wrapEl) {
+    return;
+  }
+
+  var linkEl = wrapEl.getElementsByTagName('a')[0];
+  var editUrl = linkEl.href;
+  var editRegex = /(.*)(post=)(\d+)(.*)/;
+
+  if (editUrl.match(editRegex)) {
+    var updatedEditUrl = editUrl.replace(editRegex, "$1$2".concat(pageId, "$4"));
+    linkEl.href = updatedEditUrl;
+    (0, _utils.debug)('App> updateWpAdminBarEditButtonWithId() - updating edit button id to: ', pageId);
+  }
+};
+
 var LocationSwitch = (0, _reactRouterDom.withRouter)(function (props) {
   var store = (0, _store.useStore)();
   var children = props.children;
@@ -50016,8 +50078,8 @@ var App = (0, _mobxReactLite.observer)(function (_ref, ref) {
   var store = (0, _store.useStore)(); // trigger a rerender when these props are changed (mobx4 :/)
 
   store.loadingPageAndProps;
-  (0, _mobx.values)(store.pageData);
-  (0, _mobx.values)(store.pageInitialProps);
+  store.pageData;
+  store.pageInitialProps;
 
   if (store.state === store.states.loading) {
     return _react.default.createElement("div", null, "Loading...");
@@ -50046,6 +50108,7 @@ var App = (0, _mobxReactLite.observer)(function (_ref, ref) {
       // client 
       (0, _utils.debug)('App> renderRoute is triggering CLIENT data & props load procedure');
       store.loadContentAndInitialProps(route.id, route.postType, PageComponent.getInitialProps);
+      updateWpAdminBarEditButtonWithId(route.id);
     }
 
     (0, _utils.debug)('App> current loaded pageData: ', store.pageData);
@@ -50078,7 +50141,7 @@ var App = (0, _mobxReactLite.observer)(function (_ref, ref) {
 });
 var _default = App;
 exports.default = _default;
-},{"react":"1n8/","react-router-dom":"/uc1","mobx":"6uYi","mobx-react-lite":"4+GV","./store":"rMii","./hooks":"lVCL","./layout/Header":"P6C6","./pages/NotFound":"qI17","./pages/Start":"79b3","./pages/Page":"rWZy","./pages/Post":"GN/M","./pages/Recipe":"Cfx1","./utils":"jWsf"}],"IVsl":[function(require,module,exports) {
+},{"react":"1n8/","react-router-dom":"/uc1","mobx-react-lite":"4+GV","./store":"rMii","./hooks":"lVCL","./layout/Header":"P6C6","./pages/NotFound":"qI17","./pages/Start":"79b3","./pages/Page":"rWZy","./pages/Post":"GN/M","./pages/Recipe":"Cfx1","./utils":"jWsf"}],"IVsl":[function(require,module,exports) {
 "use strict";
 
 require("core-js/modules/es6.array.copy-within");
@@ -50355,7 +50418,7 @@ var element = document.getElementById('root');
 
 var app = _react.default.createElement(_store.StoreProvider, null, _react.default.createElement(_reactHelmetAsync.HelmetProvider, null, _react.default.createElement(_reactRouterDom.BrowserRouter, null, _react.default.createElement(_App.default, null))));
 
-if ("client" === 'client' && (0, _utils.definedNotNull)(window.__FROJD_STATE)) {
+if ((0, _utils.definedNotNull)(window.__FROJD_STATE)) {
   (0, _utils.debug)('Client Renderer: hydrating app!');
 
   _reactDom.default.hydrate(app, element);

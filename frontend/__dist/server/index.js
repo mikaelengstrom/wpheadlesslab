@@ -123,7 +123,7 @@ parcelRequire = (function (modules, cache, entry, globalName) {
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-exports.pluckRandom = exports.random = exports.flatten = exports.zip = exports.reverse = exports.range = exports.debug = exports.isStr = exports.isObj = exports.isArray = exports.isFn = exports.definedNotNull = exports.defined = void 0;
+exports.pluckRandom = exports.random = exports.flatten = exports.zip = exports.reverse = exports.range = exports.isDevEnv = exports.runningOnServer = exports.runningInBrowser = exports.debug = exports.isStr = exports.isObj = exports.isArray = exports.isFn = exports.definedNotNull = exports.defined = void 0;
 
 // helpers
 const defined = obj => typeof obj !== 'undefined';
@@ -151,10 +151,22 @@ const isStr = obj => typeof obj === 'string';
 exports.isStr = isStr;
 let debugState = true;
 
-const debug = (...msg) => debugState ? console.warn(...msg) : undefined; // ranges
-
+const debug = (...msg) => debugState ? console.warn(...msg) : undefined;
 
 exports.debug = debug;
+
+const runningInBrowser = () => process.env.BABEL_ENV === 'client';
+
+exports.runningInBrowser = runningInBrowser;
+
+const runningOnServer = () => process.env.BABEL_ENV === 'server';
+
+exports.runningOnServer = runningOnServer;
+
+const isDevEnv = () => process.env.NODE_ENV === 'development'; // ranges
+
+
+exports.isDevEnv = isDevEnv;
 
 const range = (...args) => {
   let [start, end] = args.length == 2 ? args : [0, args[0]];
@@ -211,14 +223,13 @@ function _objectSpread(target) { for (var i = 1; i < arguments.length; i++) { va
 function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
 
 const generalConfig = {
-  cacheTtl: 5 * 1000 //30 * 1000
-
+  cacheTtl: 5 * 1000
 };
 const devDefaultConfig = {
   wpHome: 'http://repress.dev.test:8880',
-  appBase: process.env.BABEL_ENV === 'server' && process.env.NODE_ENV === 'development' ? 'http://web' : 'http://repress.dev.test:8880'
+  appBase: (0, _utils.runningOnServer)() && (0, _utils.isDevEnv)() ? 'http://web' : 'http://repress.dev.test:8880'
 };
-const wpInjectedConfig = process.env.BABEL_ENV === 'client' && window && window.__FROJD_SETTINGS ? window.__FROJD_SETTINGS : {};
+const wpInjectedConfig = (0, _utils.runningInBrowser)() && window.__FROJD_SETTINGS ? window.__FROJD_SETTINGS : {};
 
 const config = _objectSpread({}, generalConfig, {}, devDefaultConfig, {}, wpInjectedConfig);
 
@@ -308,6 +319,22 @@ const featuredImageTransformer = data => {
     mimeType: imageData.mimeType,
     sizes: imageSizeTransformer(imageData.mediaDetails.sizes)
   };
+};
+
+exports.featuredImageTransformer = featuredImageTransformer;
+
+const taxonomyTermTransformer = terms => {
+  const newTerms = (0, _utils.flatten)(terms).reduce((fixedTerms, term) => {
+    const tax = term['taxonomy'];
+
+    if (!(tax in fixedTerms)) {
+      fixedTerms[tax] = [];
+    }
+
+    fixedTerms[tax].push(term);
+    return fixedTerms;
+  }, {});
+  return (0, _camelcaseKeys.default)(newTerms);
 }; // this function will remove all wp post props except those we need and convert all keys to camel case, 
 // the final object will look something like this: 
 // 
@@ -331,13 +358,17 @@ const featuredImageTransformer = data => {
 // }
 
 
-exports.featuredImageTransformer = featuredImageTransformer;
-
 const pageDataTransformer = data => {
   const featuredImage = data['_embedded'] && data['_embedded']['wp:featuredmedia'] ? featuredImageTransformer(data['_embedded']['wp:featuredmedia'][0]) : null;
+  const taxonomies = data['_embedded'] && data['_embedded']['wp:term'] ? taxonomyTermTransformer(data['_embedded']['wp:term']) : null;
   const keysToRemove = ['guid', 'featured_media', 'template', '_links', 'link', '_embedded'];
   let pageData = Object.keys(data).reduce((newData, key) => {
-    if (keysToRemove.indexOf(key) === -1) {
+    if (keysToRemove.indexOf(key) === -1 && data[key]) {
+      // don't include empty arrays 
+      if ((0, _utils.isArray)(data[key]) && data[key].length === 0) {
+        return newData;
+      }
+
       newData[key] = data[key];
       (0, _traverse.default)(newData[key]).forEach(function (item) {
         this.update(transformToRelativeUrl(item));
@@ -348,7 +379,7 @@ const pageDataTransformer = data => {
   }, {});
   pageData = _objectSpread({}, (0, _camelcaseKeys.default)(pageData, {
     deep: true
-  }), {
+  }), {}, taxonomies, {
     title: data.title.rendered,
     excerpt: data.excerpt.rendered,
     content: data.content.rendered,
@@ -682,7 +713,7 @@ let Store = (_class = (_temp = class Store {
   async bootstrap() {
     (0, _utils.debug)('Store: bootstrapping!');
 
-    if (process.env.BABEL_ENV === 'client') {
+    if ((0, _utils.runningInBrowser)()) {
       this.wpRestNonce = window.__FROJD_SETTINGS && window.__FROJD_SETTINGS.wpRestNonce ? window.__FROJD_SETTINGS.wpRestNonce : 'NONE';
       (0, _utils.debug)('Store: using injected wp rest nonce: ', this.wpRestNonce);
     }
@@ -717,7 +748,7 @@ let Store = (_class = (_temp = class Store {
   }
 
   updateQueryParams() {
-    if (process.env.BABEL_ENV === 'client') {
+    if ((0, _utils.runningInBrowser)()) {
       this.setQueryParams(_queryString.default.parse(window.location.search));
     }
   }
@@ -795,6 +826,7 @@ let Store = (_class = (_temp = class Store {
     (0, _utils.debug)('Store: loadContent() called - loading page data ');
 
     if (cache.hasKey(id)) {
+      this.pageData = _mobx.observable.object({});
       (0, _mobx.set)(this.pageData, cache.get(id));
       (0, _utils.debug)('Store: loadContent() - page data found in cache, returning cached data');
       return;
@@ -803,6 +835,7 @@ let Store = (_class = (_temp = class Store {
     try {
       const content = await cms.getContent(id, type);
       (0, _mobx.runInAction)(() => {
+        this.pageData = _mobx.observable.object({});
         cache.set(id, content);
         (0, _mobx.set)(this.pageData, content);
         (0, _utils.debug)('Store: set pageData: ', this.pageData);
@@ -982,17 +1015,18 @@ const useStore = () => {
   }
 
   return store;
-};
+}; // hydrate ssr 
+
 
 exports.useStore = useStore;
 
-if (process.env.BABEL_ENV === 'client' // hydrate ssr 
-&& (0, _utils.definedNotNull)(window.__FROJD_STATE)) {
+if ((0, _utils.runningInBrowser)() && (0, _utils.definedNotNull)(window.__FROJD_STATE)) {
   let state = rehydrate(window.__FROJD_STATE);
   defaultStore = new _Store.default(state);
   (0, _utils.debug)('Hydrated store with state: ', state);
-} else if (process.env.BABEL_ENV === 'client') {
+} else if ((0, _utils.runningInBrowser)()) {
   // ssr failed/not available, start bootstrap
+  (0, _utils.debug)('Could not find dehydrated state, bootstrapping store!');
   defaultStore.bootstrap();
 }
 },{"../utils":"mbFY","./Store":"uhQu"}],"dy0w":[function(require,module,exports) {
@@ -1575,12 +1609,15 @@ const Recipe = (0, _mobxReactLite.observer)(({
     content,
     featuredImage,
     recipeScore,
+    recipeCategory,
     blocks
   } = pageData;
   const {
     date
   } = initialProps;
-  return _react.default.createElement(_react.default.Fragment, null, _react.default.createElement(_reactHelmetAsync.Helmet, null, _react.default.createElement("title", null, "Recipe Page")), _react.default.createElement("div", null, loading && _react.default.createElement("h1", null, "LOADING PAGE & PROPS!"), _react.default.createElement("h1", null, "Recept: ", title), _react.default.createElement("h3", null, "date initial prop: ", date), _react.default.createElement("h4", null, "Score: ", recipeScore ? recipeScore : 'saknas'), featuredImage && _react.default.createElement("img", {
+  return _react.default.createElement(_react.default.Fragment, null, _react.default.createElement(_reactHelmetAsync.Helmet, null, _react.default.createElement("title", null, "Recipe Page")), _react.default.createElement("div", null, loading && _react.default.createElement("h1", null, "LOADING PAGE & PROPS!"), _react.default.createElement("h1", null, "Recept: ", title), _react.default.createElement("h3", null, "date initial prop: ", date), recipeCategory && _react.default.createElement(_react.default.Fragment, null, _react.default.createElement("h4", null, "Recipe categories: "), recipeCategory.map(cat => _react.default.createElement("p", {
+    key: cat.slug
+  }, cat.name))), _react.default.createElement("h4", null, "Score: ", recipeScore ? recipeScore : 'missing'), featuredImage && _react.default.createElement("img", {
     src: featuredImage.sizes.thumbnail.url
   }), _react.default.createElement("p", null, "id: ", id), _react.default.createElement("p", null, "url: ", url), _react.default.createElement(_RawHtml.default, {
     html: content
@@ -1624,8 +1661,6 @@ var _react = _interopRequireDefault(require("react"));
 
 var _reactRouterDom = require("react-router-dom");
 
-var _mobx = require("mobx");
-
 var _mobxReactLite = require("mobx-react-lite");
 
 var _store = require("./store");
@@ -1656,8 +1691,27 @@ const pageComponents = {
   'Post': _Post.default,
   'Recipe': _Recipe.default
 };
+
+const updateWpAdminBarEditButtonWithId = pageId => {
+  const wrapEl = document.getElementById('wp-admin-bar-edit');
+
+  if (!wrapEl) {
+    return;
+  }
+
+  const linkEl = wrapEl.getElementsByTagName('a')[0];
+  const editUrl = linkEl.href;
+  const editRegex = /(.*)(post=)(\d+)(.*)/;
+
+  if (editUrl.match(editRegex)) {
+    const updatedEditUrl = editUrl.replace(editRegex, `$1$2${pageId}$4`);
+    linkEl.href = updatedEditUrl;
+    (0, _utils.debug)('App> updateWpAdminBarEditButtonWithId() - updating edit button id to: ', pageId);
+  }
+};
+
 const LocationSwitch = (0, _reactRouterDom.withRouter)(props => {
-  let store = (0, _store.useStore)();
+  const store = (0, _store.useStore)();
   const {
     children
   } = props;
@@ -1682,8 +1736,8 @@ const App = (0, _mobxReactLite.observer)(({
   let store = (0, _store.useStore)(); // trigger a rerender when these props are changed (mobx4 :/)
 
   store.loadingPageAndProps;
-  (0, _mobx.values)(store.pageData);
-  (0, _mobx.values)(store.pageInitialProps);
+  store.pageData;
+  store.pageInitialProps;
 
   if (store.state === store.states.loading) {
     return _react.default.createElement("div", null, "Loading...");
@@ -1712,6 +1766,7 @@ const App = (0, _mobxReactLite.observer)(({
       // client 
       (0, _utils.debug)('App> renderRoute is triggering CLIENT data & props load procedure');
       store.loadContentAndInitialProps(route.id, route.postType, PageComponent.getInitialProps);
+      updateWpAdminBarEditButtonWithId(route.id);
     }
 
     (0, _utils.debug)('App> current loaded pageData: ', store.pageData);
