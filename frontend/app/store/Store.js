@@ -3,13 +3,13 @@ import {
     action,
     runInAction,
     set,
-    has,
     configure as configureStore,
 } from 'mobx';
 
 import queryString from 'query-string';
 
 import { 
+    defined,
     isFn, 
     isStr,
     isObj,
@@ -54,6 +54,7 @@ class Store {
     locationChanged = false; 
     currentQuery = {};
     wpRestNonce = {};
+    isLoggedIn = false; 
 
     @observable routes = [];
     @observable primaryMenu = {}; 
@@ -67,12 +68,11 @@ class Store {
     async bootstrap() {
         debug('Store: bootstrapping!');
 
-        if (runningInBrowser()) {
-            this.wpRestNonce = window.__FROJD_SETTINGS 
-                && window.__FROJD_SETTINGS.wpRestNonce
-                    ? window.__FROJD_SETTINGS.wpRestNonce 
-                    : 'NONE';
+        if (runningInBrowser() && defined(window.__FROJD_SETTINGS)) {
+            this.wpRestNonce = window.__FROJD_SETTINGS.wpRestNonce;
+            this.isLoggedIn = window.__FROJD_SETTINGS.wpLoggedIn;
 
+            debug('Store: is logged in to WP: ', this.isLoggedIn);
             debug('Store: using injected wp rest nonce: ', this.wpRestNonce);
         }
 
@@ -104,7 +104,8 @@ class Store {
     }
 
     hasQueryParams() {
-        return Object.keys(this.currentQuery).length > 0; 
+        return Object.keys(this.currentQuery)
+            .length > 0; 
     }
 
     hasPreviewQuery() {
@@ -115,7 +116,9 @@ class Store {
 
     updateQueryParams() {
         if (runningInBrowser()) {
-            this.setQueryParams(queryString.parse(window.location.search));
+            this.setQueryParams(
+                queryString.parse(window.location.search)
+            );
         }
     }
 
@@ -212,7 +215,7 @@ class Store {
         debug('Store: loadContent() called - loading page data '); 
 
         if(cache.hasKey(id)) {
-            this.pageData = observable.object({});
+            // this.pageData = observable.object({});
             set(this.pageData, cache.get(id));
             debug('Store: loadContent() - page data found in cache, returning cached data');
             return;
@@ -222,7 +225,7 @@ class Store {
             const content = await cms.getContent(id, type);
 
             runInAction(() => {
-                this.pageData = observable.object({}); 
+                // this.pageData = observable.object({}); 
                 cache.set(id, content);
                 set(this.pageData, content);
 

@@ -4,18 +4,11 @@ import { observer } from 'mobx-react-lite';
 import { Helmet } from 'react-helmet-async';
 import RawHtml from '../../components/RawHtml';
 
-import { useForceSsrLoad } from '../../hooks';
-
 import {getDate as getServerSideDate} from '../../services/cms';
 
 const Start = observer(({ pageData, initialProps }) => {
-    const willReload = useForceSsrLoad(); 
-    if(willReload) {
-        return null; 
-    }
-
     const { date } = initialProps;
-    const { title, content } = pageData; 
+    const { title, content, featuredImage } = pageData; 
     
     return (
         <>
@@ -24,6 +17,10 @@ const Start = observer(({ pageData, initialProps }) => {
             </Helmet>
             <div>
                 <h1>Start page: {title}</h1>
+                {featuredImage &&
+                    <img src={featuredImage.sizes.thumbnail.url} />
+                }
+
                 <p>date initial prop: {date}</p>
 
                 <RawHtml html={content} />                

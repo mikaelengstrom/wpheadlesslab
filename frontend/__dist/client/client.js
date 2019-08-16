@@ -46090,7 +46090,7 @@ var hasOwnProperty = Object.hasOwnProperty || function (obj, key) {
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-exports.pageDataTransformer = exports.featuredImageTransformer = exports.menuTransformer = exports.routeTransformer = void 0;
+exports.pageDataTransformer = exports.taxonomyCategoryTransformer = exports.featuredImageTransformer = exports.menuTransformer = exports.routeTransformer = void 0;
 
 var _camelcaseKeys = _interopRequireDefault(require("camelcase-keys"));
 
@@ -46151,6 +46151,10 @@ var featuredImageTransformer = function featuredImageTransformer(data) {
     deep: true
   });
 
+  if (!('mediaDetails' in imageData)) {
+    return null;
+  }
+
   var imageSizeTransformer = function imageSizeTransformer(imageSizes) {
     return Object.keys(imageSizes).reduce(function (sizes, size, i) {
       sizes[size] = {
@@ -46187,6 +46191,17 @@ var taxonomyTermTransformer = function taxonomyTermTransformer(terms) {
     return fixedTerms;
   }, {});
   return (0, _camelcaseKeys.default)(newTerms);
+};
+
+var taxonomyCategoryTransformer = function taxonomyCategoryTransformer(category) {
+  return {
+    id: category.id,
+    count: category.count,
+    name: category.name,
+    slug: category.slug,
+    description: category.description,
+    taxonomy: category.taxonomy
+  };
 }; // this function will remove all wp post props except those we need and convert all keys to camel case, 
 // the final object will look something like this: 
 // 
@@ -46209,6 +46224,8 @@ var taxonomyTermTransformer = function taxonomyTermTransformer(terms) {
 //     <registered acf properties in camel case if available> 
 // }
 
+
+exports.taxonomyCategoryTransformer = taxonomyCategoryTransformer;
 
 var pageDataTransformer = function pageDataTransformer(data) {
   var featuredImage = data['_embedded'] && data['_embedded']['wp:featuredmedia'] ? featuredImageTransformer(data['_embedded']['wp:featuredmedia'][0]) : null;
@@ -47751,7 +47768,7 @@ module.exports = require('./lib/axios');
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-exports.getContentPreview = exports.getContent = exports.getMedia = exports.getDate = exports.getPrimaryMenu = exports.getRoutes = void 0;
+exports.getTaxonomyCategories = exports.getPages = exports.getContentPreview = exports.getContent = exports.getMedia = exports.getDate = exports.getPrimaryMenu = exports.getRoutes = void 0;
 
 var transformers = _interopRequireWildcard(require("../../transformers"));
 
@@ -47809,13 +47826,22 @@ var endpoints = {
     return "".concat(base, "/date");
   },
   page: function page(id) {
-    return "".concat(base, "/wp/v2/pages/").concat(id);
+    return "".concat(base, "/wp/v2/pages/").concat(id, "?_embed");
   },
   post: function post(id) {
-    return "".concat(base, "/wp/v2/posts/").concat(id);
+    return "".concat(base, "/wp/v2/posts/").concat(id, "?_embed");
   },
   cpt: function cpt(id, type) {
     return "".concat(base, "/wp/v2/").concat(type, "/").concat(id, "?_embed");
+  },
+  pages: function pages() {
+    return "".concat(base, "/wp/v2/pages?_embed");
+  },
+  posts: function posts() {
+    return "".concat(base, "/wp/v2/posts?_embed");
+  },
+  cpts: function cpts(type) {
+    return "".concat(base, "/wp/v2/").concat(type, "?_embed");
   },
   pageRevisions: function pageRevisions(id) {
     return "".concat(base, "/wp/v2/pages/").concat(id, "/revisions?filter[orderby]=date&order=desc");
@@ -47834,6 +47860,9 @@ var endpoints = {
   },
   cptRevision: function cptRevision(id, type, revisionId) {
     return "".concat(base, "/wp/v2/").concat(type, "/").concat(id, "/revisions/").concat(revisionId, "?_embed");
+  },
+  taxonomyCategories: function taxonomyCategories(name) {
+    return "".concat(base, "/wp/v2/").concat(name);
   }
 };
 (0, _utils.debug)('CMS Service: using base: ', base);
@@ -48030,48 +48059,50 @@ function () {
 
 exports.getContent = getContent;
 
-var getRevisions =
+var getPages =
 /*#__PURE__*/
 function () {
   var _ref6 = _asyncToGenerator(
   /*#__PURE__*/
-  regeneratorRuntime.mark(function _callee6(id, type, nonce) {
+  regeneratorRuntime.mark(function _callee6(type) {
     var resp;
     return regeneratorRuntime.wrap(function _callee6$(_context6) {
       while (1) {
         switch (_context6.prev = _context6.next) {
           case 0:
+            (0, _utils.debug)('CMS getPages(): fetching pages of type: ', type);
             _context6.t0 = type;
-            _context6.next = _context6.t0 === 'page' ? 3 : _context6.t0 === 'post' ? 7 : 11;
+            _context6.next = _context6.t0 === 'page' ? 4 : _context6.t0 === 'post' ? 8 : 12;
             break;
 
-          case 3:
-            _context6.next = 5;
-            return _axios.default.get(endpoints.pageRevisions(id), authConfig(nonce));
+          case 4:
+            _context6.next = 6;
+            return _axios.default.get(endpoints.pages());
 
-          case 5:
+          case 6:
             resp = _context6.sent;
-            return _context6.abrupt("break", 15);
+            return _context6.abrupt("break", 16);
 
-          case 7:
-            _context6.next = 9;
-            return _axios.default.get(endpoints.postRevisions(id), authConfig(nonce));
+          case 8:
+            _context6.next = 10;
+            return _axios.default.get(endpoints.posts());
 
-          case 9:
+          case 10:
             resp = _context6.sent;
-            return _context6.abrupt("break", 15);
+            return _context6.abrupt("break", 16);
 
-          case 11:
-            _context6.next = 13;
-            return _axios.default.get(endpoints.cptRevisions(id, type), authConfig(nonce));
+          case 12:
+            _context6.next = 14;
+            return _axios.default.get(endpoints.cpts(type));
 
-          case 13:
+          case 14:
             resp = _context6.sent;
-            return _context6.abrupt("break", 15);
+            return _context6.abrupt("break", 16);
 
-          case 15:
-            (0, _utils.debug)('CMS getRevisions(): fetched revision list for id: ', id, resp.data);
-            return _context6.abrupt("return", resp.data);
+          case 16:
+            return _context6.abrupt("return", resp.data.map(function (data) {
+              return transformers.pageDataTransformer(data);
+            }));
 
           case 17:
           case "end":
@@ -48081,53 +48112,55 @@ function () {
     }, _callee6);
   }));
 
-  return function getRevisions(_x5, _x6, _x7) {
+  return function getPages(_x5) {
     return _ref6.apply(this, arguments);
   };
 }();
 
-var getRevision =
+exports.getPages = getPages;
+
+var getRevisions =
 /*#__PURE__*/
 function () {
   var _ref7 = _asyncToGenerator(
   /*#__PURE__*/
-  regeneratorRuntime.mark(function _callee7(id, type, revisionId, nonce) {
+  regeneratorRuntime.mark(function _callee7(id, type, nonce) {
     var resp;
     return regeneratorRuntime.wrap(function _callee7$(_context7) {
       while (1) {
         switch (_context7.prev = _context7.next) {
           case 0:
-            (0, _utils.debug)('CMS getRevision(): fetching revision content for id: ', id);
             _context7.t0 = type;
-            _context7.next = _context7.t0 === 'page' ? 4 : _context7.t0 === 'post' ? 8 : 12;
+            _context7.next = _context7.t0 === 'page' ? 3 : _context7.t0 === 'post' ? 7 : 11;
             break;
 
-          case 4:
-            _context7.next = 6;
-            return _axios.default.get(endpoints.pageRevision(id, revisionId), authConfig(nonce));
+          case 3:
+            _context7.next = 5;
+            return _axios.default.get(endpoints.pageRevisions(id), authConfig(nonce));
 
-          case 6:
+          case 5:
             resp = _context7.sent;
-            return _context7.abrupt("break", 16);
+            return _context7.abrupt("break", 15);
 
-          case 8:
-            _context7.next = 10;
-            return _axios.default.get(endpoints.postRevision(id, revisionId), authConfig(nonce));
+          case 7:
+            _context7.next = 9;
+            return _axios.default.get(endpoints.postRevisions(id), authConfig(nonce));
 
-          case 10:
+          case 9:
             resp = _context7.sent;
-            return _context7.abrupt("break", 16);
+            return _context7.abrupt("break", 15);
 
-          case 12:
-            _context7.next = 14;
-            return _axios.default.get(endpoints.cptRevision(id, type, revisionId), authConfig(nonce));
+          case 11:
+            _context7.next = 13;
+            return _axios.default.get(endpoints.cptRevisions(id, type), authConfig(nonce));
 
-          case 14:
+          case 13:
             resp = _context7.sent;
-            return _context7.abrupt("break", 16);
+            return _context7.abrupt("break", 15);
 
-          case 16:
-            return _context7.abrupt("return", transformers.pageDataTransformer(resp.data));
+          case 15:
+            (0, _utils.debug)('CMS getRevisions(): fetched revision list for id: ', id, resp.data);
+            return _context7.abrupt("return", resp.data);
 
           case 17:
           case "end":
@@ -48137,47 +48170,55 @@ function () {
     }, _callee7);
   }));
 
-  return function getRevision(_x8, _x9, _x10, _x11) {
+  return function getRevisions(_x6, _x7, _x8) {
     return _ref7.apply(this, arguments);
   };
 }();
 
-var getContentPreview =
+var getRevision =
 /*#__PURE__*/
 function () {
   var _ref8 = _asyncToGenerator(
   /*#__PURE__*/
-  regeneratorRuntime.mark(function _callee8(id, type, previewMediaId, nonce) {
-    var pageData, featuredImage, revs, _ref9, _ref10;
-
+  regeneratorRuntime.mark(function _callee8(id, type, revisionId, nonce) {
+    var resp;
     return regeneratorRuntime.wrap(function _callee8$(_context8) {
       while (1) {
         switch (_context8.prev = _context8.next) {
           case 0:
-            pageData = {}, featuredImage = {}, revs = {};
-            (0, _utils.debug)('CMS getContentPreview() called!');
-            (0, _utils.debug)('CMS getContentPreview() nonce: ', nonce);
-            (0, _utils.debug)('CMS getContentPreview() preview media id: ', previewMediaId);
+            (0, _utils.debug)('CMS getRevision(): fetching revision content for id: ', id);
+            _context8.t0 = type;
+            _context8.next = _context8.t0 === 'page' ? 4 : _context8.t0 === 'post' ? 8 : 12;
+            break;
+
+          case 4:
             _context8.next = 6;
-            return getRevisions(id, type, nonce);
+            return _axios.default.get(endpoints.pageRevision(id, revisionId), authConfig(nonce));
 
           case 6:
-            revs = _context8.sent;
-            (0, _utils.debug)('CMS: received post revision list: ', revs);
+            resp = _context8.sent;
+            return _context8.abrupt("break", 16);
+
+          case 8:
             _context8.next = 10;
-            return Promise.all([previewMediaId > -1 ? getMedia(previewMediaId, nonce) : undefined, getRevision(id, type, revs[0].id, nonce)]);
+            return _axios.default.get(endpoints.postRevision(id, revisionId), authConfig(nonce));
 
           case 10:
-            _ref9 = _context8.sent;
-            _ref10 = _slicedToArray(_ref9, 2);
-            featuredImage = _ref10[0];
-            pageData = _ref10[1];
-            (0, _utils.debug)('CMS: getContentPreview() - received preview media data: ', featuredImage);
-            return _context8.abrupt("return", _objectSpread({}, pageData, {
-              featuredImage: featuredImage
-            }));
+            resp = _context8.sent;
+            return _context8.abrupt("break", 16);
+
+          case 12:
+            _context8.next = 14;
+            return _axios.default.get(endpoints.cptRevision(id, type, revisionId), authConfig(nonce));
+
+          case 14:
+            resp = _context8.sent;
+            return _context8.abrupt("break", 16);
 
           case 16:
+            return _context8.abrupt("return", transformers.pageDataTransformer(resp.data));
+
+          case 17:
           case "end":
             return _context8.stop();
         }
@@ -48185,12 +48226,97 @@ function () {
     }, _callee8);
   }));
 
-  return function getContentPreview(_x12, _x13, _x14, _x15) {
+  return function getRevision(_x9, _x10, _x11, _x12) {
     return _ref8.apply(this, arguments);
   };
 }();
 
+var getContentPreview =
+/*#__PURE__*/
+function () {
+  var _ref9 = _asyncToGenerator(
+  /*#__PURE__*/
+  regeneratorRuntime.mark(function _callee9(id, type, previewMediaId, nonce) {
+    var pageData, featuredImage, revs, _ref10, _ref11;
+
+    return regeneratorRuntime.wrap(function _callee9$(_context9) {
+      while (1) {
+        switch (_context9.prev = _context9.next) {
+          case 0:
+            pageData = {}, featuredImage = {}, revs = {};
+            (0, _utils.debug)('CMS getContentPreview() called!');
+            (0, _utils.debug)('CMS getContentPreview() nonce: ', nonce);
+            (0, _utils.debug)('CMS getContentPreview() preview media id: ', previewMediaId);
+            _context9.next = 6;
+            return getRevisions(id, type, nonce);
+
+          case 6:
+            revs = _context9.sent;
+            (0, _utils.debug)('CMS: received post revision list: ', revs);
+            _context9.next = 10;
+            return Promise.all([previewMediaId > -1 ? getMedia(previewMediaId, nonce) : undefined, getRevision(id, type, revs[0].id, nonce)]);
+
+          case 10:
+            _ref10 = _context9.sent;
+            _ref11 = _slicedToArray(_ref10, 2);
+            featuredImage = _ref11[0];
+            pageData = _ref11[1];
+            (0, _utils.debug)('CMS: getContentPreview() - received preview media data: ', featuredImage);
+            return _context9.abrupt("return", _objectSpread({}, pageData, {
+              featuredImage: featuredImage
+            }));
+
+          case 16:
+          case "end":
+            return _context9.stop();
+        }
+      }
+    }, _callee9);
+  }));
+
+  return function getContentPreview(_x13, _x14, _x15, _x16) {
+    return _ref9.apply(this, arguments);
+  };
+}();
+
 exports.getContentPreview = getContentPreview;
+
+var getTaxonomyCategories =
+/*#__PURE__*/
+function () {
+  var _ref12 = _asyncToGenerator(
+  /*#__PURE__*/
+  regeneratorRuntime.mark(function _callee10(name) {
+    var resp, categories;
+    return regeneratorRuntime.wrap(function _callee10$(_context10) {
+      while (1) {
+        switch (_context10.prev = _context10.next) {
+          case 0:
+            _context10.next = 2;
+            return _axios.default.get(endpoints.taxonomyCategories(name));
+
+          case 2:
+            resp = _context10.sent;
+            categories = resp.data.map(function (category) {
+              return transformers.taxonomyCategoryTransformer(category);
+            });
+            (0, _utils.debug)('CMS getTaxonomyCategories(): received categories: ', categories);
+            return _context10.abrupt("return", categories);
+
+          case 6:
+          case "end":
+            return _context10.stop();
+        }
+      }
+    }, _callee10);
+  }));
+
+  return function getTaxonomyCategories(_x17) {
+    return _ref12.apply(this, arguments);
+  };
+}();
+
+exports.getTaxonomyCategories = getTaxonomyCategories;
 },{"../../transformers":"Dcf6","../../config":"yMXu","../../utils":"jWsf","axios":"dZBD"}],"q5ME":[function(require,module,exports) {
 "use strict";
 
@@ -48344,6 +48470,7 @@ function () {
     this.locationChanged = false;
     this.currentQuery = {};
     this.wpRestNonce = {};
+    this.isLoggedIn = false;
 
     _initializerDefineProperty(this, "routes", _descriptor3, this);
 
@@ -48380,8 +48507,10 @@ function () {
               case 0:
                 (0, _utils.debug)('Store: bootstrapping!');
 
-                if ((0, _utils.runningInBrowser)()) {
-                  this.wpRestNonce = window.__FROJD_SETTINGS && window.__FROJD_SETTINGS.wpRestNonce ? window.__FROJD_SETTINGS.wpRestNonce : 'NONE';
+                if ((0, _utils.runningInBrowser)() && (0, _utils.defined)(window.__FROJD_SETTINGS)) {
+                  this.wpRestNonce = window.__FROJD_SETTINGS.wpRestNonce;
+                  this.isLoggedIn = window.__FROJD_SETTINGS.wpLoggedIn;
+                  (0, _utils.debug)('Store: is logged in to WP: ', this.isLoggedIn);
                   (0, _utils.debug)('Store: using injected wp rest nonce: ', this.wpRestNonce);
                 }
 
@@ -48626,45 +48755,45 @@ function () {
                 (0, _utils.debug)('Store: loadContent() called - loading page data ');
 
                 if (!cache.hasKey(id)) {
-                  _context5.next = 6;
+                  _context5.next = 5;
                   break;
                 }
 
-                this.pageData = _mobx.observable.object({});
+                // this.pageData = observable.object({});
                 (0, _mobx.set)(this.pageData, cache.get(id));
                 (0, _utils.debug)('Store: loadContent() - page data found in cache, returning cached data');
                 return _context5.abrupt("return");
 
-              case 6:
-                _context5.prev = 6;
-                _context5.next = 9;
+              case 5:
+                _context5.prev = 5;
+                _context5.next = 8;
                 return cms.getContent(id, type);
 
-              case 9:
+              case 8:
                 content = _context5.sent;
                 (0, _mobx.runInAction)(function () {
-                  _this6.pageData = _mobx.observable.object({});
+                  // this.pageData = observable.object({}); 
                   cache.set(id, content);
                   (0, _mobx.set)(_this6.pageData, content);
                   (0, _utils.debug)('Store: set pageData: ', _this6.pageData);
                 });
-                _context5.next = 16;
+                _context5.next = 15;
                 break;
 
-              case 13:
-                _context5.prev = 13;
-                _context5.t0 = _context5["catch"](6);
+              case 12:
+                _context5.prev = 12;
+                _context5.t0 = _context5["catch"](5);
                 (0, _mobx.runInAction)(function () {
                   _this6.state = _this6.states.error;
                   _this6.error = _context5.t0;
                 });
 
-              case 16:
+              case 15:
               case "end":
                 return _context5.stop();
             }
           }
-        }, _callee5, this, [[6, 13]]);
+        }, _callee5, this, [[5, 12]]);
       }));
 
       function loadContent(_x4, _x5) {
@@ -49439,7 +49568,9 @@ var _usePrevious = _interopRequireDefault(require("./use-previous"));
 var _useForceSsrLoad = _interopRequireDefault(require("./use-force-ssr-load"));
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-},{"./use-previous":"4on2","./use-force-ssr-load":"L0M2"}],"J0m2":[function(require,module,exports) {
+},{"./use-previous":"4on2","./use-force-ssr-load":"L0M2"}],"7B16":[function(require,module,exports) {
+
+},{}],"J0m2":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -49447,7 +49578,7 @@ Object.defineProperty(exports, "__esModule", {
 });
 exports.default = void 0;
 
-var _react = _interopRequireWildcard(require("react"));
+var _react = _interopRequireDefault(require("react"));
 
 var _reactRouterDom = require("react-router-dom");
 
@@ -49455,12 +49586,17 @@ var _mobxReactLite = require("mobx-react-lite");
 
 var _store = require("../../store");
 
-function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) { var desc = Object.defineProperty && Object.getOwnPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : {}; if (desc.get || desc.set) { Object.defineProperty(newObj, key, desc); } else { newObj[key] = obj[key]; } } } } newObj.default = obj; return newObj; } }
+require("./Header.scss");
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 var Header = (0, _mobxReactLite.observer)(function () {
   var store = (0, _store.useStore)();
-  return _react.default.createElement("header", null, store.primaryMenu && store.primaryMenu.items.map(function (item, i) {
+  return _react.default.createElement("header", {
+    className: "Header"
+  }, store.primaryMenu && store.primaryMenu.items.map(function (item, i) {
     return _react.default.createElement(_reactRouterDom.Link, {
+      className: "Header__Link",
       key: i,
       to: item.url
     }, item.title);
@@ -49468,7 +49604,7 @@ var Header = (0, _mobxReactLite.observer)(function () {
 });
 var _default = Header;
 exports.default = _default;
-},{"react":"1n8/","react-router-dom":"/uc1","mobx-react-lite":"4+GV","../../store":"rMii"}],"P6C6":[function(require,module,exports) {
+},{"react":"1n8/","react-router-dom":"/uc1","mobx-react-lite":"4+GV","../../store":"rMii","./Header.scss":"7B16"}],"P6C6":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -49521,7 +49657,48 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 
 var _default = _NotFound.default;
 exports.default = _default;
-},{"./NotFound":"EhCC"}],"jJlE":[function(require,module,exports) {
+},{"./NotFound":"EhCC"}],"i6j6":[function(require,module,exports) {
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.default = void 0;
+
+var _react = _interopRequireDefault(require("react"));
+
+var _reactHelmetAsync = require("react-helmet-async");
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+// import PropTypes from 'prop-types';
+var Error = function Error(_ref) {
+  var _ref$code = _ref.code,
+      code = _ref$code === void 0 ? '500' : _ref$code,
+      message = _ref.message;
+  return _react.default.createElement(_react.default.Fragment, null, _react.default.createElement(_reactHelmetAsync.Helmet, null, _react.default.createElement("title", null, "Error ", code)), _react.default.createElement("div", null, _react.default.createElement("h1", null, "Error - ", code), _react.default.createElement("p", null, message)));
+};
+
+Error.defaultProps = {
+  message: 'The page could not be found'
+};
+var _default = Error;
+exports.default = _default;
+},{"react":"1n8/","react-helmet-async":"2FKu"}],"6ICi":[function(require,module,exports) {
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.default = void 0;
+
+var _Error = _interopRequireDefault(require("./Error"));
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+var _default = _Error.default;
+exports.default = _default;
+},{"./Error":"i6j6"}],"jJlE":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -49580,8 +49757,6 @@ var _reactHelmetAsync = require("react-helmet-async");
 
 var _RawHtml = _interopRequireDefault(require("../../components/RawHtml"));
 
-var _hooks = require("../../hooks");
-
 var _cms = require("../../services/cms");
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
@@ -49593,16 +49768,13 @@ function _asyncToGenerator(fn) { return function () { var self = this, args = ar
 var Start = (0, _mobxReactLite.observer)(function (_ref) {
   var pageData = _ref.pageData,
       initialProps = _ref.initialProps;
-  var willReload = (0, _hooks.useForceSsrLoad)();
-
-  if (willReload) {
-    return null;
-  }
-
   var date = initialProps.date;
   var title = pageData.title,
-      content = pageData.content;
-  return _react.default.createElement(_react.default.Fragment, null, _react.default.createElement(_reactHelmetAsync.Helmet, null, _react.default.createElement("title", null, "Start Page")), _react.default.createElement("div", null, _react.default.createElement("h1", null, "Start page: ", title), _react.default.createElement("p", null, "date initial prop: ", date), _react.default.createElement(_RawHtml.default, {
+      content = pageData.content,
+      featuredImage = pageData.featuredImage;
+  return _react.default.createElement(_react.default.Fragment, null, _react.default.createElement(_reactHelmetAsync.Helmet, null, _react.default.createElement("title", null, "Start Page")), _react.default.createElement("div", null, _react.default.createElement("h1", null, "Start page: ", title), featuredImage && _react.default.createElement("img", {
+    src: featuredImage.sizes.thumbnail.url
+  }), _react.default.createElement("p", null, "date initial prop: ", date), _react.default.createElement(_RawHtml.default, {
     html: content
   })));
 });
@@ -49634,7 +49806,7 @@ regeneratorRuntime.mark(function _callee() {
 }));
 var _default = Start;
 exports.default = _default;
-},{"react":"1n8/","mobx-react-lite":"4+GV","react-helmet-async":"2FKu","../../components/RawHtml":"GLJt","../../hooks":"lVCL","../../services/cms":"CJ63"}],"79b3":[function(require,module,exports) {
+},{"react":"1n8/","mobx-react-lite":"4+GV","react-helmet-async":"2FKu","../../components/RawHtml":"GLJt","../../services/cms":"CJ63"}],"79b3":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -49664,6 +49836,8 @@ var _reactHelmetAsync = require("react-helmet-async");
 
 var _RawHtml = _interopRequireDefault(require("../../components/RawHtml"));
 
+var _hooks = require("../../hooks");
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 var Page = (0, _mobxReactLite.observer)(function (_ref) {
@@ -49671,6 +49845,12 @@ var Page = (0, _mobxReactLite.observer)(function (_ref) {
   var title = pageData.title,
       content = pageData.content,
       featuredImage = pageData.featuredImage;
+  var willReload = (0, _hooks.useForceSsrLoad)();
+
+  if (willReload) {
+    return null;
+  }
+
   return _react.default.createElement(_react.default.Fragment, null, _react.default.createElement(_reactHelmetAsync.Helmet, null, _react.default.createElement("title", null, "Page")), _react.default.createElement("div", null, _react.default.createElement("h1", null, "A page: ", title), featuredImage && _react.default.createElement("img", {
     src: featuredImage.sizes.thumbnail.url
   }), _react.default.createElement(_RawHtml.default, {
@@ -49679,7 +49859,7 @@ var Page = (0, _mobxReactLite.observer)(function (_ref) {
 });
 var _default = Page;
 exports.default = _default;
-},{"react":"1n8/","mobx-react-lite":"4+GV","react-helmet-async":"2FKu","../../components/RawHtml":"GLJt"}],"rWZy":[function(require,module,exports) {
+},{"react":"1n8/","mobx-react-lite":"4+GV","react-helmet-async":"2FKu","../../components/RawHtml":"GLJt","../../hooks":"lVCL"}],"rWZy":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -49738,9 +49918,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 
 var _default = _Post.default;
 exports.default = _default;
-},{"./Post":"S7NS"}],"nRvL":[function(require,module,exports) {
-
-},{}],"M+kL":[function(require,module,exports) {
+},{"./Post":"S7NS"}],"M+kL":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -49750,11 +49928,10 @@ exports.default = void 0;
 
 var _react = _interopRequireDefault(require("react"));
 
-require("./index.scss");
+require("./UnknownBlock.scss");
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-// import { observer } from 'mobx-react-lite';
 var UnknownBlock = function UnknownBlock(_ref) {
   var missingComponentId = _ref.missingComponentId;
   return _react.default.createElement("div", {
@@ -49764,7 +49941,7 @@ var UnknownBlock = function UnknownBlock(_ref) {
 
 var _default = UnknownBlock;
 exports.default = _default;
-},{"react":"1n8/","./index.scss":"nRvL"}],"m1aD":[function(require,module,exports) {
+},{"react":"1n8/","./UnknownBlock.scss":"7B16"}],"m1aD":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -49792,7 +49969,7 @@ var _mobxReactLite = require("mobx-react-lite");
 
 var _reactRouterDom = require("react-router-dom");
 
-require("./index.scss");
+require("./BlurbFull.scss");
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
@@ -49810,7 +49987,7 @@ var BlurbFull = (0, _mobxReactLite.observer)(function (_ref) {
 });
 var _default = BlurbFull;
 exports.default = _default;
-},{"react":"1n8/","mobx-react-lite":"4+GV","react-router-dom":"/uc1","./index.scss":"nRvL"}],"jdLn":[function(require,module,exports) {
+},{"react":"1n8/","mobx-react-lite":"4+GV","react-router-dom":"/uc1","./BlurbFull.scss":"7B16"}],"jdLn":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -49824,7 +50001,54 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 
 var _default = _BlurbFull.default;
 exports.default = _default;
-},{"./BlurbFull":"+Fak"}],"K+MU":[function(require,module,exports) {
+},{"./BlurbFull":"+Fak"}],"eMG8":[function(require,module,exports) {
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.default = void 0;
+
+var _react = _interopRequireDefault(require("react"));
+
+var _mobxReactLite = require("mobx-react-lite");
+
+var _reactRouterDom = require("react-router-dom");
+
+require("./BlurbBg.scss");
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+var BlurbBg = (0, _mobxReactLite.observer)(function (_ref) {
+  var title = _ref.title,
+      image = _ref.image,
+      link = _ref.link;
+  return _react.default.createElement("div", {
+    style: {
+      backgroundImage: "url('".concat(image, "')")
+    },
+    className: "BlurbBg"
+  }, _react.default.createElement(_reactRouterDom.Link, {
+    to: link.url
+  }, "Click here"));
+});
+var _default = BlurbBg;
+exports.default = _default;
+},{"react":"1n8/","mobx-react-lite":"4+GV","react-router-dom":"/uc1","./BlurbBg.scss":"7B16"}],"Akp2":[function(require,module,exports) {
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.default = void 0;
+
+var _BlurbBg = _interopRequireDefault(require("./BlurbBg"));
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+var _default = _BlurbBg.default;
+exports.default = _default;
+},{"./BlurbBg":"eMG8"}],"K+MU":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -49842,6 +50066,8 @@ var _UnknownBlock = _interopRequireDefault(require("../../blocks/UnknownBlock"))
 
 var _BlurbFull = _interopRequireDefault(require("../../blocks/BlurbFull"));
 
+var _BlurbBg = _interopRequireDefault(require("../../blocks/BlurbBg"));
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 function _extends() { _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; }; return _extends.apply(this, arguments); }
@@ -49851,8 +50077,10 @@ function _objectWithoutProperties(source, excluded) { if (source == null) return
 function _objectWithoutPropertiesLoose(source, excluded) { if (source == null) return {}; var target = {}; var sourceKeys = Object.keys(source); var key, i; for (i = 0; i < sourceKeys.length; i++) { key = sourceKeys[i]; if (excluded.indexOf(key) >= 0) continue; target[key] = source[key]; } return target; }
 
 var blockComponents = {
-  'blurb_full': _BlurbFull.default
-};
+  'blurb_full': _BlurbFull.default,
+  'blurb_bg': _BlurbBg.default
+}; //
+
 var Blocks = (0, _mobxReactLite.observer)(function (_ref) {
   var items = _ref.items;
   (0, _utils.debug)('Blocks> passed block items: ', items);
@@ -49884,7 +50112,7 @@ var Blocks = (0, _mobxReactLite.observer)(function (_ref) {
 });
 var _default = Blocks;
 exports.default = _default;
-},{"react":"1n8/","mobx-react-lite":"4+GV","../../utils":"jWsf","../../blocks/UnknownBlock":"m1aD","../../blocks/BlurbFull":"jdLn"}],"PvL6":[function(require,module,exports) {
+},{"react":"1n8/","mobx-react-lite":"4+GV","../../utils":"jWsf","../../blocks/UnknownBlock":"m1aD","../../blocks/BlurbFull":"jdLn","../../blocks/BlurbBg":"Akp2"}],"PvL6":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -49939,7 +50167,7 @@ var Recipe = (0, _mobxReactLite.observer)(function (_ref) {
       recipeCategory = pageData.recipeCategory,
       blocks = pageData.blocks;
   var date = initialProps.date;
-  return _react.default.createElement(_react.default.Fragment, null, _react.default.createElement(_reactHelmetAsync.Helmet, null, _react.default.createElement("title", null, "Recipe Page")), _react.default.createElement("div", null, loading && _react.default.createElement("h1", null, "LOADING PAGE & PROPS!"), _react.default.createElement("h1", null, "Recept: ", title), _react.default.createElement("h3", null, "date initial prop: ", date), recipeCategory && _react.default.createElement(_react.default.Fragment, null, _react.default.createElement("h4", null, "Recipe categories: "), recipeCategory.map(function (cat) {
+  return _react.default.createElement(_react.default.Fragment, null, _react.default.createElement(_reactHelmetAsync.Helmet, null, _react.default.createElement("title", null, "Recipe Page - ".concat(title || ''))), _react.default.createElement("div", null, loading && _react.default.createElement("h1", null, "LOADING PAGE & PROPS!"), _react.default.createElement("h1", null, "Recept: ", title), _react.default.createElement("h3", null, "date initial prop: ", date), recipeCategory && _react.default.createElement(_react.default.Fragment, null, _react.default.createElement("h4", null, "Recipe categories: "), recipeCategory.map(function (cat) {
     return _react.default.createElement("p", {
       key: cat.slug
     }, cat.name);
@@ -49993,7 +50221,116 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 
 var _default = _Recipe.default;
 exports.default = _default;
-},{"./Recipe":"fIaG"}],"0+DP":[function(require,module,exports) {
+},{"./Recipe":"fIaG"}],"ZODA":[function(require,module,exports) {
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.default = void 0;
+
+var _react = _interopRequireDefault(require("react"));
+
+var _reactRouterDom = require("react-router-dom");
+
+var _mobxReactLite = require("mobx-react-lite");
+
+var _reactHelmetAsync = require("react-helmet-async");
+
+var _RawHtml = _interopRequireDefault(require("../../components/RawHtml"));
+
+var cms = _interopRequireWildcard(require("../../services/cms"));
+
+function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) { var desc = Object.defineProperty && Object.getOwnPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : {}; if (desc.get || desc.set) { Object.defineProperty(newObj, key, desc); } else { newObj[key] = obj[key]; } } } } newObj.default = obj; return newObj; } }
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+function _slicedToArray(arr, i) { return _arrayWithHoles(arr) || _iterableToArrayLimit(arr, i) || _nonIterableRest(); }
+
+function _nonIterableRest() { throw new TypeError("Invalid attempt to destructure non-iterable instance"); }
+
+function _iterableToArrayLimit(arr, i) { var _arr = []; var _n = true; var _d = false; var _e = undefined; try { for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) { _arr.push(_s.value); if (i && _arr.length === i) break; } } catch (err) { _d = true; _e = err; } finally { try { if (!_n && _i["return"] != null) _i["return"](); } finally { if (_d) throw _e; } } return _arr; }
+
+function _arrayWithHoles(arr) { if (Array.isArray(arr)) return arr; }
+
+function asyncGeneratorStep(gen, resolve, reject, _next, _throw, key, arg) { try { var info = gen[key](arg); var value = info.value; } catch (error) { reject(error); return; } if (info.done) { resolve(value); } else { Promise.resolve(value).then(_next, _throw); } }
+
+function _asyncToGenerator(fn) { return function () { var self = this, args = arguments; return new Promise(function (resolve, reject) { var gen = fn.apply(self, args); function _next(value) { asyncGeneratorStep(gen, resolve, reject, _next, _throw, "next", value); } function _throw(err) { asyncGeneratorStep(gen, resolve, reject, _next, _throw, "throw", err); } _next(undefined); }); }; }
+
+// import { debug } from '../../utils';
+var RecipeList = (0, _mobxReactLite.observer)(function (_ref) {
+  var loading = _ref.loading,
+      pageData = _ref.pageData,
+      initialProps = _ref.initialProps;
+  var title = pageData.title,
+      content = pageData.content,
+      featuredImage = pageData.featuredImage;
+  var recipes = initialProps.recipes,
+      recipeCategories = initialProps.recipeCategories;
+  return _react.default.createElement(_react.default.Fragment, null, _react.default.createElement(_reactHelmetAsync.Helmet, null, _react.default.createElement("title", null, "RecipeList Page - ".concat(title || ''))), _react.default.createElement("div", null, loading && _react.default.createElement("h1", null, "LOADING PAGE & PROPS!"), _react.default.createElement("h1", null, "Recipe list page: ", title), featuredImage && _react.default.createElement("img", {
+    src: featuredImage.sizes.thumbnail.url
+  }), _react.default.createElement(_RawHtml.default, {
+    html: content
+  }), _react.default.createElement("h2", null, "Available recipe categories"), recipeCategories && recipeCategories.length && _react.default.createElement("ul", null, recipeCategories.map(function (category) {
+    return _react.default.createElement("li", {
+      key: category.id
+    }, category.name);
+  })), _react.default.createElement("h2", null, "All recipes"), recipes && recipes.length && _react.default.createElement("ul", null, recipes.map(function (recipe) {
+    return _react.default.createElement("li", {
+      key: recipe.slug
+    }, _react.default.createElement(_reactRouterDom.Link, {
+      to: recipe.url
+    }, recipe.title));
+  }))));
+});
+RecipeList.getInitialProps =
+/*#__PURE__*/
+_asyncToGenerator(
+/*#__PURE__*/
+regeneratorRuntime.mark(function _callee() {
+  var _ref3, _ref4, recipes, recipeCategories;
+
+  return regeneratorRuntime.wrap(function _callee$(_context) {
+    while (1) {
+      switch (_context.prev = _context.next) {
+        case 0:
+          _context.next = 2;
+          return Promise.all([cms.getPages('recipe'), cms.getTaxonomyCategories('recipe_category')]);
+
+        case 2:
+          _ref3 = _context.sent;
+          _ref4 = _slicedToArray(_ref3, 2);
+          recipes = _ref4[0];
+          recipeCategories = _ref4[1];
+          return _context.abrupt("return", {
+            recipes: recipes,
+            recipeCategories: recipeCategories
+          });
+
+        case 7:
+        case "end":
+          return _context.stop();
+      }
+    }
+  }, _callee);
+}));
+var _default = RecipeList;
+exports.default = _default;
+},{"react":"1n8/","react-router-dom":"/uc1","mobx-react-lite":"4+GV","react-helmet-async":"2FKu","../../components/RawHtml":"GLJt","../../services/cms":"CJ63"}],"AMe5":[function(require,module,exports) {
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.default = void 0;
+
+var _RecipeList = _interopRequireDefault(require("./RecipeList"));
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+var _default = _RecipeList.default;
+exports.default = _default;
+},{"./RecipeList":"ZODA"}],"0+DP":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -50015,6 +50352,8 @@ var _Header = _interopRequireDefault(require("./layout/Header"));
 
 var _NotFound = _interopRequireDefault(require("./pages/NotFound"));
 
+var _Error = _interopRequireDefault(require("./pages/Error"));
+
 var _Start = _interopRequireDefault(require("./pages/Start"));
 
 var _Page = _interopRequireDefault(require("./pages/Page"));
@@ -50022,6 +50361,8 @@ var _Page = _interopRequireDefault(require("./pages/Page"));
 var _Post = _interopRequireDefault(require("./pages/Post"));
 
 var _Recipe = _interopRequireDefault(require("./pages/Recipe"));
+
+var _RecipeList = _interopRequireDefault(require("./pages/RecipeList"));
 
 var _utils = require("./utils");
 
@@ -50033,7 +50374,8 @@ var pageComponents = {
   'Start': _Start.default,
   'Page': _Page.default,
   'Post': _Post.default,
-  'Recipe': _Recipe.default
+  'Recipe': _Recipe.default,
+  'Recipe list': _RecipeList.default
 };
 
 var updateWpAdminBarEditButtonWithId = function updateWpAdminBarEditButtonWithId(pageId) {
@@ -50075,7 +50417,7 @@ var LocationSwitch = (0, _reactRouterDom.withRouter)(function (props) {
 var App = (0, _mobxReactLite.observer)(function (_ref, ref) {
   var _ref$ssr = _ref.ssr,
       ssr = _ref$ssr === void 0 ? false : _ref$ssr;
-  var store = (0, _store.useStore)(); // trigger a rerender when these props are changed (mobx4 :/)
+  var store = (0, _store.useStore)(); // trigger a rerender when these props are changed
 
   store.loadingPageAndProps;
   store.pageData;
@@ -50092,8 +50434,21 @@ var App = (0, _mobxReactLite.observer)(function (_ref, ref) {
   var renderRoute = function renderRoute(props, route) {
     (0, _utils.debug)('App> renderRoute() called');
     (0, _utils.debug)('App> has location changed?', store.locationChanged);
-    var PageComponent = pageComponents[route.component]; // expose promises in ref (enables us to wait for 
+    var PageComponent = pageComponents[route.component];
+
+    if (!(0, _utils.defined)(PageComponent)) {
+      var message = "Could not render page - no React component mapped to name \"".concat(route.component, "\" found!");
+      console.error("App> Could not render page - no React component mapped to name \"".concat(route.component, "\" found!"));
+
+      PageComponent = function PageComponent() {
+        return _react.default.createElement(_Error.default, {
+          code: "501",
+          message: message
+        });
+      };
+    } // expose promises in ref (enables us to wait for 
     // data load when doing ssr, see server/lib/ssr/index.js).
+
 
     if (ref && (0, _utils.defined)(ref.current) && ref.current === null) {
       // ssr
@@ -50141,7 +50496,7 @@ var App = (0, _mobxReactLite.observer)(function (_ref, ref) {
 });
 var _default = App;
 exports.default = _default;
-},{"react":"1n8/","react-router-dom":"/uc1","mobx-react-lite":"4+GV","./store":"rMii","./hooks":"lVCL","./layout/Header":"P6C6","./pages/NotFound":"qI17","./pages/Start":"79b3","./pages/Page":"rWZy","./pages/Post":"GN/M","./pages/Recipe":"Cfx1","./utils":"jWsf"}],"IVsl":[function(require,module,exports) {
+},{"react":"1n8/","react-router-dom":"/uc1","mobx-react-lite":"4+GV","./store":"rMii","./hooks":"lVCL","./layout/Header":"P6C6","./pages/NotFound":"qI17","./pages/Error":"6ICi","./pages/Start":"79b3","./pages/Page":"rWZy","./pages/Post":"GN/M","./pages/Recipe":"Cfx1","./pages/RecipeList":"AMe5","./utils":"jWsf"}],"IVsl":[function(require,module,exports) {
 "use strict";
 
 require("core-js/modules/es6.array.copy-within");

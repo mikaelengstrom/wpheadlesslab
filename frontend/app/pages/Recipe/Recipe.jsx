@@ -15,7 +15,7 @@ const Recipe = observer(({ loading, id, url, pageData, initialProps }) => {
     return (
         <>
             <Helmet>
-                <title>Recipe Page</title>
+                <title>{`Recipe Page - ${title || ''}`}</title>
             </Helmet>
             <div>
                 {loading &&

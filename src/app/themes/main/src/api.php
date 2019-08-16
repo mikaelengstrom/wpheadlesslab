@@ -67,7 +67,7 @@ add_action('rest_api_init', function () {
 });
 
 /**
- * Include acf fields for all registered post types in rest api responses
+ * Include acf fields & permalink for all registered post types in rest api responses
  */
 add_action('rest_api_init', function() {
     // get all post types
@@ -92,6 +92,11 @@ add_action('rest_api_init', function() {
                 foreach ($fields as $field_name => $value){
                     $response_data[$field_name] = $value;
                 }
+            }
+
+            // set url
+            if(isset($post)) {
+                $response_data['url'] = str_replace(WP_HOME, '', get_permalink($post->ID));
             }
 
             // commit the API result var to the API endpoint

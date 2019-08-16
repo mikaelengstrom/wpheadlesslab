@@ -15,11 +15,14 @@ import {
 
 import Header from './layout/Header';
 import NotFound from './pages/NotFound';
+import Error from './pages/Error';
 
 import Start from './pages/Start';
 import Page from './pages/Page';
 import Post from './pages/Post';
 import Recipe from './pages/Recipe';
+import RecipeList from './pages/RecipeList';
+
 
 import { defined, debug } from './utils';
 
@@ -27,7 +30,8 @@ const pageComponents = {
     'Start': Start, 
     'Page': Page, 
     'Post': Post, 
-    'Recipe': Recipe
+    'Recipe': Recipe,
+    'Recipe list': RecipeList
 };
 
 const updateWpAdminBarEditButtonWithId = (pageId) => {
@@ -80,7 +84,7 @@ const LocationSwitch = withRouter((props) => {
 const App = observer(({ ssr = false }, ref) => {
     let store = useStore();
 
-    // trigger a rerender when these props are changed (mobx4 :/)
+    // trigger a rerender when these props are changed
     store.loadingPageAndProps;
     store.pageData;
     store.pageInitialProps;
@@ -104,7 +108,19 @@ const App = observer(({ ssr = false }, ref) => {
         debug('App> renderRoute() called');
         debug('App> has location changed?', store.locationChanged);
 
-        const PageComponent = pageComponents[route.component];
+        let PageComponent = pageComponents[route.component];
+
+        if(!defined(PageComponent)) {
+            const message = `Could not render page - no React component mapped to name "${route.component}" found!`; 
+            console.error(`App> Could not render page - no React component mapped to name "${route.component}" found!`);
+
+            PageComponent = () => (
+                <Error 
+                    code="501"
+                    message={message} 
+                />
+            );
+        }
 
         // expose promises in ref (enables us to wait for 
         // data load when doing ssr, see server/lib/ssr/index.js).
@@ -137,7 +153,7 @@ const App = observer(({ ssr = false }, ref) => {
         }
 
         debug('App> current loaded pageData: ', store.pageData);
-
+        
         return (
             <PageComponent
                 id={route.id}

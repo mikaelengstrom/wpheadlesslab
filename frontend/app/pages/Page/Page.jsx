@@ -5,8 +5,15 @@ import { Helmet } from 'react-helmet-async';
 
 import RawHtml from '../../components/RawHtml';
 
+import { useForceSsrLoad } from '../../hooks';
+
 const Page = observer(({ pageData }) => {
     const { title, content, featuredImage } = pageData; 
+
+    const willReload = useForceSsrLoad();
+    if (willReload) {
+        return null;
+    }
 
     return (
         <>

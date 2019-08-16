@@ -104,6 +104,55 @@
                     "min": "",
                     "max": ""
                 },
+                "layout_5d568ac7b7414": {
+                    "key": "layout_5d568ac7b7414",
+                    "name": "blurb_bg",
+                    "label": "Bakgrundsbildspuff",
+                    "display": "block",
+                    "sub_fields": [
+                        {
+                            "key": "field_5d568adab7415",
+                            "label": "Image",
+                            "name": "image",
+                            "type": "image",
+                            "instructions": "Background image",
+                            "required": 0,
+                            "conditional_logic": 0,
+                            "wrapper": {
+                                "width": "",
+                                "class": "",
+                                "id": ""
+                            },
+                            "return_format": "url",
+                            "preview_size": "thumbnail",
+                            "library": "all",
+                            "min_width": "",
+                            "min_height": "",
+                            "min_size": "",
+                            "max_width": "",
+                            "max_height": "",
+                            "max_size": "",
+                            "mime_types": ""
+                        },
+                        {
+                            "key": "field_5d568b08b7416",
+                            "label": "Link",
+                            "name": "link",
+                            "type": "link",
+                            "instructions": "",
+                            "required": 0,
+                            "conditional_logic": 0,
+                            "wrapper": {
+                                "width": "",
+                                "class": "",
+                                "id": ""
+                            },
+                            "return_format": "array"
+                        }
+                    ],
+                    "min": "",
+                    "max": ""
+                },
                 "layout_5d416de4cb8c5": {
                     "key": "layout_5d416de4cb8c5",
                     "name": "blurb_half",
@@ -195,5 +244,5 @@
     "hide_on_screen": "",
     "active": 1,
     "description": "",
-    "modified": 1564569166
+    "modified": 1565953774
 }

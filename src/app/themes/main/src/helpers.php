@@ -16,14 +16,15 @@ function fetch_ssr_component() {
     $has_preview_query = strpos($_SERVER['REQUEST_URI'], '?') !== false
         && isset($_GET['preview']);
 
+    // don't do ssr for wp post previews (for simplicity)
     if($has_preview_query) {
         return $container_html;
     }
 
     try {
         $url = WP_SSR_HOST . $_SERVER['REQUEST_URI'];
-
         $client = new \GuzzleHttp\Client();
+
         $resp = $client->request('GET', $url);
         $ssr_html = $resp->getBody();
 

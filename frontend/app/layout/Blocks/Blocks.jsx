@@ -5,11 +5,14 @@ import { debug } from '../../utils';
 
 import UnknownBlock from '../../blocks/UnknownBlock';
 import BlurbFull from '../../blocks/BlurbFull';
+import BlurbBg from '../../blocks/BlurbBg';
 
 const blockComponents = {
-    'blurb_full': BlurbFull
+    'blurb_full': BlurbFull,
+    'blurb_bg': BlurbBg
 };
 
+//
 const Blocks = observer(({ items }) => {
     debug('Blocks> passed block items: ', items);
 

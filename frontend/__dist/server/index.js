@@ -242,7 +242,7 @@ exports.default = _default;
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-exports.pageDataTransformer = exports.featuredImageTransformer = exports.menuTransformer = exports.routeTransformer = void 0;
+exports.pageDataTransformer = exports.taxonomyCategoryTransformer = exports.featuredImageTransformer = exports.menuTransformer = exports.routeTransformer = void 0;
 
 var _camelcaseKeys = _interopRequireDefault(require("camelcase-keys"));
 
@@ -301,6 +301,10 @@ const featuredImageTransformer = data => {
     deep: true
   });
 
+  if (!('mediaDetails' in imageData)) {
+    return null;
+  }
+
   const imageSizeTransformer = imageSizes => Object.keys(imageSizes).reduce((sizes, size, i) => {
     sizes[size] = {
       file: imageSizes[size].file,
@@ -335,6 +339,17 @@ const taxonomyTermTransformer = terms => {
     return fixedTerms;
   }, {});
   return (0, _camelcaseKeys.default)(newTerms);
+};
+
+const taxonomyCategoryTransformer = category => {
+  return {
+    id: category.id,
+    count: category.count,
+    name: category.name,
+    slug: category.slug,
+    description: category.description,
+    taxonomy: category.taxonomy
+  };
 }; // this function will remove all wp post props except those we need and convert all keys to camel case, 
 // the final object will look something like this: 
 // 
@@ -357,6 +372,8 @@ const taxonomyTermTransformer = terms => {
 //     <registered acf properties in camel case if available> 
 // }
 
+
+exports.taxonomyCategoryTransformer = taxonomyCategoryTransformer;
 
 const pageDataTransformer = data => {
   const featuredImage = data['_embedded'] && data['_embedded']['wp:featuredmedia'] ? featuredImageTransformer(data['_embedded']['wp:featuredmedia'][0]) : null;
@@ -395,7 +412,7 @@ exports.pageDataTransformer = pageDataTransformer;
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-exports.getContentPreview = exports.getContent = exports.getMedia = exports.getDate = exports.getPrimaryMenu = exports.getRoutes = void 0;
+exports.getTaxonomyCategories = exports.getPages = exports.getContentPreview = exports.getContent = exports.getMedia = exports.getDate = exports.getPrimaryMenu = exports.getRoutes = void 0;
 
 var transformers = _interopRequireWildcard(require("../../transformers"));
 
@@ -430,15 +447,19 @@ const endpoints = {
   primaryMenu: () => `${base}/menus/v1/menus/primary_navigation`,
   media: id => `${base}/wp/v2/media/${id}`,
   date: () => `${base}/date`,
-  page: id => `${base}/wp/v2/pages/${id}`,
-  post: id => `${base}/wp/v2/posts/${id}`,
+  page: id => `${base}/wp/v2/pages/${id}?_embed`,
+  post: id => `${base}/wp/v2/posts/${id}?_embed`,
   cpt: (id, type) => `${base}/wp/v2/${type}/${id}?_embed`,
+  pages: () => `${base}/wp/v2/pages?_embed`,
+  posts: () => `${base}/wp/v2/posts?_embed`,
+  cpts: type => `${base}/wp/v2/${type}?_embed`,
   pageRevisions: id => `${base}/wp/v2/pages/${id}/revisions?filter[orderby]=date&order=desc`,
   pageRevision: (id, revisionId) => `${base}/wp/v2/pages/${id}/revisions/${revisionId}?_embed`,
   postRevisions: id => `${base}/wp/v2/posts/${id}/revisions?filter[orderby]=date&order=desc`,
   postRevision: (id, revisionId) => `${base}/wp/v2/posts/${id}/revisions/${revisionId}?_embed`,
   cptRevisions: (id, type) => `${base}/wp/v2/${type}/${id}/revisions?filter[orderby]=date&order=desc`,
-  cptRevision: (id, type, revisionId) => `${base}/wp/v2/${type}/${id}/revisions/${revisionId}?_embed`
+  cptRevision: (id, type, revisionId) => `${base}/wp/v2/${type}/${id}/revisions/${revisionId}?_embed`,
+  taxonomyCategories: name => `${base}/wp/v2/${name}`
 };
 (0, _utils.debug)('CMS Service: using base: ', base);
 
@@ -495,6 +516,29 @@ const getContent = async (id, type) => {
 };
 
 exports.getContent = getContent;
+
+const getPages = async type => {
+  let resp;
+  (0, _utils.debug)('CMS getPages(): fetching pages of type: ', type);
+
+  switch (type) {
+    case 'page':
+      resp = await _axios.default.get(endpoints.pages());
+      break;
+
+    case 'post':
+      resp = await _axios.default.get(endpoints.posts());
+      break;
+
+    default:
+      resp = await _axios.default.get(endpoints.cpts(type));
+      break;
+  }
+
+  return resp.data.map(data => transformers.pageDataTransformer(data));
+};
+
+exports.getPages = getPages;
 
 const getRevisions = async (id, type, nonce) => {
   let resp;
@@ -555,6 +599,15 @@ const getContentPreview = async (id, type, previewMediaId, nonce) => {
 };
 
 exports.getContentPreview = getContentPreview;
+
+const getTaxonomyCategories = async name => {
+  let resp = await _axios.default.get(endpoints.taxonomyCategories(name));
+  const categories = resp.data.map(category => transformers.taxonomyCategoryTransformer(category));
+  (0, _utils.debug)('CMS getTaxonomyCategories(): received categories: ', categories);
+  return categories;
+};
+
+exports.getTaxonomyCategories = getTaxonomyCategories;
 },{"../../transformers":"NR1n","../../config":"LpuZ","../../utils":"mbFY"}],"/FFy":[function(require,module,exports) {
 "use strict";
 
@@ -688,6 +741,7 @@ let Store = (_class = (_temp = class Store {
     this.locationChanged = false;
     this.currentQuery = {};
     this.wpRestNonce = {};
+    this.isLoggedIn = false;
 
     _initializerDefineProperty(this, "routes", _descriptor3, this);
 
@@ -713,8 +767,10 @@ let Store = (_class = (_temp = class Store {
   async bootstrap() {
     (0, _utils.debug)('Store: bootstrapping!');
 
-    if ((0, _utils.runningInBrowser)()) {
-      this.wpRestNonce = window.__FROJD_SETTINGS && window.__FROJD_SETTINGS.wpRestNonce ? window.__FROJD_SETTINGS.wpRestNonce : 'NONE';
+    if ((0, _utils.runningInBrowser)() && (0, _utils.defined)(window.__FROJD_SETTINGS)) {
+      this.wpRestNonce = window.__FROJD_SETTINGS.wpRestNonce;
+      this.isLoggedIn = window.__FROJD_SETTINGS.wpLoggedIn;
+      (0, _utils.debug)('Store: is logged in to WP: ', this.isLoggedIn);
       (0, _utils.debug)('Store: using injected wp rest nonce: ', this.wpRestNonce);
     }
 
@@ -826,7 +882,7 @@ let Store = (_class = (_temp = class Store {
     (0, _utils.debug)('Store: loadContent() called - loading page data ');
 
     if (cache.hasKey(id)) {
-      this.pageData = _mobx.observable.object({});
+      // this.pageData = observable.object({});
       (0, _mobx.set)(this.pageData, cache.get(id));
       (0, _utils.debug)('Store: loadContent() - page data found in cache, returning cached data');
       return;
@@ -835,7 +891,7 @@ let Store = (_class = (_temp = class Store {
     try {
       const content = await cms.getContent(id, type);
       (0, _mobx.runInAction)(() => {
-        this.pageData = _mobx.observable.object({});
+        // this.pageData = observable.object({}); 
         cache.set(id, content);
         (0, _mobx.set)(this.pageData, content);
         (0, _utils.debug)('Store: set pageData: ', this.pageData);
@@ -1119,7 +1175,9 @@ var _usePrevious = _interopRequireDefault(require("./use-previous"));
 var _useForceSsrLoad = _interopRequireDefault(require("./use-force-ssr-load"));
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-},{"./use-previous":"dy0w","./use-force-ssr-load":"q9re"}],"wi7Z":[function(require,module,exports) {
+},{"./use-previous":"dy0w","./use-force-ssr-load":"q9re"}],"/yl4":[function(require,module,exports) {
+
+},{}],"wi7Z":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -1127,7 +1185,7 @@ Object.defineProperty(exports, "__esModule", {
 });
 exports.default = void 0;
 
-var _react = _interopRequireWildcard(require("react"));
+var _react = _interopRequireDefault(require("react"));
 
 var _reactRouterDom = require("react-router-dom");
 
@@ -1135,18 +1193,23 @@ var _mobxReactLite = require("mobx-react-lite");
 
 var _store = require("../../store");
 
-function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) { var desc = Object.defineProperty && Object.getOwnPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : {}; if (desc.get || desc.set) { Object.defineProperty(newObj, key, desc); } else { newObj[key] = obj[key]; } } } } newObj.default = obj; return newObj; } }
+require("./Header.scss");
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 const Header = (0, _mobxReactLite.observer)(() => {
   let store = (0, _store.useStore)();
-  return _react.default.createElement("header", null, store.primaryMenu && store.primaryMenu.items.map((item, i) => _react.default.createElement(_reactRouterDom.Link, {
+  return _react.default.createElement("header", {
+    className: "Header"
+  }, store.primaryMenu && store.primaryMenu.items.map((item, i) => _react.default.createElement(_reactRouterDom.Link, {
+    className: "Header__Link",
     key: i,
     to: item.url
   }, item.title)));
 });
 var _default = Header;
 exports.default = _default;
-},{"../../store":"28Kg"}],"ZlR1":[function(require,module,exports) {
+},{"../../store":"28Kg","./Header.scss":"/yl4"}],"ZlR1":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -1200,7 +1263,48 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 
 var _default = _NotFound.default;
 exports.default = _default;
-},{"./NotFound":"yI0r"}],"Zbms":[function(require,module,exports) {
+},{"./NotFound":"yI0r"}],"zW8L":[function(require,module,exports) {
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.default = void 0;
+
+var _react = _interopRequireDefault(require("react"));
+
+var _reactHelmetAsync = require("react-helmet-async");
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+// import PropTypes from 'prop-types';
+const Error = ({
+  code = '500',
+  message
+}) => {
+  return _react.default.createElement(_react.default.Fragment, null, _react.default.createElement(_reactHelmetAsync.Helmet, null, _react.default.createElement("title", null, "Error ", code)), _react.default.createElement("div", null, _react.default.createElement("h1", null, "Error - ", code), _react.default.createElement("p", null, message)));
+};
+
+Error.defaultProps = {
+  message: 'The page could not be found'
+};
+var _default = Error;
+exports.default = _default;
+},{}],"ARH/":[function(require,module,exports) {
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.default = void 0;
+
+var _Error = _interopRequireDefault(require("./Error"));
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+var _default = _Error.default;
+exports.default = _default;
+},{"./Error":"zW8L"}],"Zbms":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -1261,8 +1365,6 @@ var _reactHelmetAsync = require("react-helmet-async");
 
 var _RawHtml = _interopRequireDefault(require("../../components/RawHtml"));
 
-var _hooks = require("../../hooks");
-
 var _cms = require("../../services/cms");
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
@@ -1271,20 +1373,17 @@ const Start = (0, _mobxReactLite.observer)(({
   pageData,
   initialProps
 }) => {
-  const willReload = (0, _hooks.useForceSsrLoad)();
-
-  if (willReload) {
-    return null;
-  }
-
   const {
     date
   } = initialProps;
   const {
     title,
-    content
+    content,
+    featuredImage
   } = pageData;
-  return _react.default.createElement(_react.default.Fragment, null, _react.default.createElement(_reactHelmetAsync.Helmet, null, _react.default.createElement("title", null, "Start Page")), _react.default.createElement("div", null, _react.default.createElement("h1", null, "Start page: ", title), _react.default.createElement("p", null, "date initial prop: ", date), _react.default.createElement(_RawHtml.default, {
+  return _react.default.createElement(_react.default.Fragment, null, _react.default.createElement(_reactHelmetAsync.Helmet, null, _react.default.createElement("title", null, "Start Page")), _react.default.createElement("div", null, _react.default.createElement("h1", null, "Start page: ", title), featuredImage && _react.default.createElement("img", {
+    src: featuredImage.sizes.thumbnail.url
+  }), _react.default.createElement("p", null, "date initial prop: ", date), _react.default.createElement(_RawHtml.default, {
     html: content
   })));
 });
@@ -1298,7 +1397,7 @@ Start.getInitialProps = async () => {
 
 var _default = Start;
 exports.default = _default;
-},{"../../components/RawHtml":"Yzzv","../../hooks":"k74t","../../services/cms":"lAOr"}],"gTCO":[function(require,module,exports) {
+},{"../../components/RawHtml":"Yzzv","../../services/cms":"lAOr"}],"gTCO":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -1328,6 +1427,8 @@ var _reactHelmetAsync = require("react-helmet-async");
 
 var _RawHtml = _interopRequireDefault(require("../../components/RawHtml"));
 
+var _hooks = require("../../hooks");
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 const Page = (0, _mobxReactLite.observer)(({
@@ -1338,6 +1439,12 @@ const Page = (0, _mobxReactLite.observer)(({
     content,
     featuredImage
   } = pageData;
+  const willReload = (0, _hooks.useForceSsrLoad)();
+
+  if (willReload) {
+    return null;
+  }
+
   return _react.default.createElement(_react.default.Fragment, null, _react.default.createElement(_reactHelmetAsync.Helmet, null, _react.default.createElement("title", null, "Page")), _react.default.createElement("div", null, _react.default.createElement("h1", null, "A page: ", title), featuredImage && _react.default.createElement("img", {
     src: featuredImage.sizes.thumbnail.url
   }), _react.default.createElement(_RawHtml.default, {
@@ -1346,7 +1453,7 @@ const Page = (0, _mobxReactLite.observer)(({
 });
 var _default = Page;
 exports.default = _default;
-},{"../../components/RawHtml":"Yzzv"}],"vry0":[function(require,module,exports) {
+},{"../../components/RawHtml":"Yzzv","../../hooks":"k74t"}],"vry0":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -1408,9 +1515,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 
 var _default = _Post.default;
 exports.default = _default;
-},{"./Post":"y8jq"}],"PHl9":[function(require,module,exports) {
-
-},{}],"Rmkp":[function(require,module,exports) {
+},{"./Post":"y8jq"}],"Rmkp":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -1420,11 +1525,10 @@ exports.default = void 0;
 
 var _react = _interopRequireDefault(require("react"));
 
-require("./index.scss");
+require("./UnknownBlock.scss");
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-// import { observer } from 'mobx-react-lite';
 const UnknownBlock = ({
   missingComponentId
 }) => {
@@ -1435,7 +1539,7 @@ const UnknownBlock = ({
 
 var _default = UnknownBlock;
 exports.default = _default;
-},{"./index.scss":"PHl9"}],"KKpl":[function(require,module,exports) {
+},{"./UnknownBlock.scss":"/yl4"}],"KKpl":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -1463,7 +1567,7 @@ var _mobxReactLite = require("mobx-react-lite");
 
 var _reactRouterDom = require("react-router-dom");
 
-require("./index.scss");
+require("./BlurbFull.scss");
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
@@ -1482,7 +1586,7 @@ const BlurbFull = (0, _mobxReactLite.observer)(({
 });
 var _default = BlurbFull;
 exports.default = _default;
-},{"./index.scss":"PHl9"}],"wkiv":[function(require,module,exports) {
+},{"./BlurbFull.scss":"/yl4"}],"wkiv":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -1496,7 +1600,55 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 
 var _default = _BlurbFull.default;
 exports.default = _default;
-},{"./BlurbFull":"map+"}],"Q2rm":[function(require,module,exports) {
+},{"./BlurbFull":"map+"}],"H8//":[function(require,module,exports) {
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.default = void 0;
+
+var _react = _interopRequireDefault(require("react"));
+
+var _mobxReactLite = require("mobx-react-lite");
+
+var _reactRouterDom = require("react-router-dom");
+
+require("./BlurbBg.scss");
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+const BlurbBg = (0, _mobxReactLite.observer)(({
+  title,
+  image,
+  link
+}) => {
+  return _react.default.createElement("div", {
+    style: {
+      backgroundImage: `url('${image}')`
+    },
+    className: "BlurbBg"
+  }, _react.default.createElement(_reactRouterDom.Link, {
+    to: link.url
+  }, "Click here"));
+});
+var _default = BlurbBg;
+exports.default = _default;
+},{"./BlurbBg.scss":"/yl4"}],"bXZX":[function(require,module,exports) {
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.default = void 0;
+
+var _BlurbBg = _interopRequireDefault(require("./BlurbBg"));
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+var _default = _BlurbBg.default;
+exports.default = _default;
+},{"./BlurbBg":"H8//"}],"Q2rm":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -1514,6 +1666,8 @@ var _UnknownBlock = _interopRequireDefault(require("../../blocks/UnknownBlock"))
 
 var _BlurbFull = _interopRequireDefault(require("../../blocks/BlurbFull"));
 
+var _BlurbBg = _interopRequireDefault(require("../../blocks/BlurbBg"));
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 function _extends() { _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; }; return _extends.apply(this, arguments); }
@@ -1523,8 +1677,10 @@ function _objectWithoutProperties(source, excluded) { if (source == null) return
 function _objectWithoutPropertiesLoose(source, excluded) { if (source == null) return {}; var target = {}; var sourceKeys = Object.keys(source); var key, i; for (i = 0; i < sourceKeys.length; i++) { key = sourceKeys[i]; if (excluded.indexOf(key) >= 0) continue; target[key] = source[key]; } return target; }
 
 const blockComponents = {
-  'blurb_full': _BlurbFull.default
-};
+  'blurb_full': _BlurbFull.default,
+  'blurb_bg': _BlurbBg.default
+}; //
+
 const Blocks = (0, _mobxReactLite.observer)(({
   items
 }) => {
@@ -1559,7 +1715,7 @@ const Blocks = (0, _mobxReactLite.observer)(({
 });
 var _default = Blocks;
 exports.default = _default;
-},{"../../utils":"mbFY","../../blocks/UnknownBlock":"KKpl","../../blocks/BlurbFull":"wkiv"}],"bKA5":[function(require,module,exports) {
+},{"../../utils":"mbFY","../../blocks/UnknownBlock":"KKpl","../../blocks/BlurbFull":"wkiv","../../blocks/BlurbBg":"bXZX"}],"bKA5":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -1615,7 +1771,7 @@ const Recipe = (0, _mobxReactLite.observer)(({
   const {
     date
   } = initialProps;
-  return _react.default.createElement(_react.default.Fragment, null, _react.default.createElement(_reactHelmetAsync.Helmet, null, _react.default.createElement("title", null, "Recipe Page")), _react.default.createElement("div", null, loading && _react.default.createElement("h1", null, "LOADING PAGE & PROPS!"), _react.default.createElement("h1", null, "Recept: ", title), _react.default.createElement("h3", null, "date initial prop: ", date), recipeCategory && _react.default.createElement(_react.default.Fragment, null, _react.default.createElement("h4", null, "Recipe categories: "), recipeCategory.map(cat => _react.default.createElement("p", {
+  return _react.default.createElement(_react.default.Fragment, null, _react.default.createElement(_reactHelmetAsync.Helmet, null, _react.default.createElement("title", null, `Recipe Page - ${title || ''}`)), _react.default.createElement("div", null, loading && _react.default.createElement("h1", null, "LOADING PAGE & PROPS!"), _react.default.createElement("h1", null, "Recept: ", title), _react.default.createElement("h3", null, "date initial prop: ", date), recipeCategory && _react.default.createElement(_react.default.Fragment, null, _react.default.createElement("h4", null, "Recipe categories: "), recipeCategory.map(cat => _react.default.createElement("p", {
     key: cat.slug
   }, cat.name))), _react.default.createElement("h4", null, "Score: ", recipeScore ? recipeScore : 'missing'), featuredImage && _react.default.createElement("img", {
     src: featuredImage.sizes.thumbnail.url
@@ -1649,7 +1805,83 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 
 var _default = _Recipe.default;
 exports.default = _default;
-},{"./Recipe":"a2KQ"}],"ISOy":[function(require,module,exports) {
+},{"./Recipe":"a2KQ"}],"FiW8":[function(require,module,exports) {
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.default = void 0;
+
+var _react = _interopRequireDefault(require("react"));
+
+var _reactRouterDom = require("react-router-dom");
+
+var _mobxReactLite = require("mobx-react-lite");
+
+var _reactHelmetAsync = require("react-helmet-async");
+
+var _RawHtml = _interopRequireDefault(require("../../components/RawHtml"));
+
+var cms = _interopRequireWildcard(require("../../services/cms"));
+
+function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) { var desc = Object.defineProperty && Object.getOwnPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : {}; if (desc.get || desc.set) { Object.defineProperty(newObj, key, desc); } else { newObj[key] = obj[key]; } } } } newObj.default = obj; return newObj; } }
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+// import { debug } from '../../utils';
+const RecipeList = (0, _mobxReactLite.observer)(({
+  loading,
+  pageData,
+  initialProps
+}) => {
+  const {
+    title,
+    content,
+    featuredImage
+  } = pageData;
+  const {
+    recipes,
+    recipeCategories
+  } = initialProps;
+  return _react.default.createElement(_react.default.Fragment, null, _react.default.createElement(_reactHelmetAsync.Helmet, null, _react.default.createElement("title", null, `RecipeList Page - ${title || ''}`)), _react.default.createElement("div", null, loading && _react.default.createElement("h1", null, "LOADING PAGE & PROPS!"), _react.default.createElement("h1", null, "Recipe list page: ", title), featuredImage && _react.default.createElement("img", {
+    src: featuredImage.sizes.thumbnail.url
+  }), _react.default.createElement(_RawHtml.default, {
+    html: content
+  }), _react.default.createElement("h2", null, "Available recipe categories"), recipeCategories && recipeCategories.length && _react.default.createElement("ul", null, recipeCategories.map(category => _react.default.createElement("li", {
+    key: category.id
+  }, category.name))), _react.default.createElement("h2", null, "All recipes"), recipes && recipes.length && _react.default.createElement("ul", null, recipes.map(recipe => _react.default.createElement("li", {
+    key: recipe.slug
+  }, _react.default.createElement(_reactRouterDom.Link, {
+    to: recipe.url
+  }, recipe.title))))));
+});
+
+RecipeList.getInitialProps = async () => {
+  const [recipes, recipeCategories] = await Promise.all([cms.getPages('recipe'), cms.getTaxonomyCategories('recipe_category')]);
+  return {
+    recipes,
+    recipeCategories
+  };
+};
+
+var _default = RecipeList;
+exports.default = _default;
+},{"../../components/RawHtml":"Yzzv","../../services/cms":"lAOr"}],"VrZy":[function(require,module,exports) {
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.default = void 0;
+
+var _RecipeList = _interopRequireDefault(require("./RecipeList"));
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+var _default = _RecipeList.default;
+exports.default = _default;
+},{"./RecipeList":"FiW8"}],"ISOy":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -1671,6 +1903,8 @@ var _Header = _interopRequireDefault(require("./layout/Header"));
 
 var _NotFound = _interopRequireDefault(require("./pages/NotFound"));
 
+var _Error = _interopRequireDefault(require("./pages/Error"));
+
 var _Start = _interopRequireDefault(require("./pages/Start"));
 
 var _Page = _interopRequireDefault(require("./pages/Page"));
@@ -1678,6 +1912,8 @@ var _Page = _interopRequireDefault(require("./pages/Page"));
 var _Post = _interopRequireDefault(require("./pages/Post"));
 
 var _Recipe = _interopRequireDefault(require("./pages/Recipe"));
+
+var _RecipeList = _interopRequireDefault(require("./pages/RecipeList"));
 
 var _utils = require("./utils");
 
@@ -1689,7 +1925,8 @@ const pageComponents = {
   'Start': _Start.default,
   'Page': _Page.default,
   'Post': _Post.default,
-  'Recipe': _Recipe.default
+  'Recipe': _Recipe.default,
+  'Recipe list': _RecipeList.default
 };
 
 const updateWpAdminBarEditButtonWithId = pageId => {
@@ -1733,7 +1970,7 @@ const LocationSwitch = (0, _reactRouterDom.withRouter)(props => {
 const App = (0, _mobxReactLite.observer)(({
   ssr = false
 }, ref) => {
-  let store = (0, _store.useStore)(); // trigger a rerender when these props are changed (mobx4 :/)
+  let store = (0, _store.useStore)(); // trigger a rerender when these props are changed
 
   store.loadingPageAndProps;
   store.pageData;
@@ -1750,8 +1987,19 @@ const App = (0, _mobxReactLite.observer)(({
   const renderRoute = (props, route) => {
     (0, _utils.debug)('App> renderRoute() called');
     (0, _utils.debug)('App> has location changed?', store.locationChanged);
-    const PageComponent = pageComponents[route.component]; // expose promises in ref (enables us to wait for 
+    let PageComponent = pageComponents[route.component];
+
+    if (!(0, _utils.defined)(PageComponent)) {
+      const message = `Could not render page - no React component mapped to name "${route.component}" found!`;
+      console.error(`App> Could not render page - no React component mapped to name "${route.component}" found!`);
+
+      PageComponent = () => _react.default.createElement(_Error.default, {
+        code: "501",
+        message: message
+      });
+    } // expose promises in ref (enables us to wait for 
     // data load when doing ssr, see server/lib/ssr/index.js).
+
 
     if (ref && (0, _utils.defined)(ref.current) && ref.current === null) {
       // ssr
@@ -1795,7 +2043,7 @@ const App = (0, _mobxReactLite.observer)(({
 });
 var _default = App;
 exports.default = _default;
-},{"./store":"28Kg","./hooks":"k74t","./layout/Header":"ZlR1","./pages/NotFound":"e6rX","./pages/Start":"gTCO","./pages/Page":"vry0","./pages/Post":"Dk/9","./pages/Recipe":"FRwr","./utils":"mbFY"}],"TbCL":[function(require,module,exports) {
+},{"./store":"28Kg","./hooks":"k74t","./layout/Header":"ZlR1","./pages/NotFound":"e6rX","./pages/Error":"ARH/","./pages/Start":"gTCO","./pages/Page":"vry0","./pages/Post":"Dk/9","./pages/Recipe":"FRwr","./pages/RecipeList":"VrZy","./utils":"mbFY"}],"TbCL":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {

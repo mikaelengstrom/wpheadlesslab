@@ -14,6 +14,7 @@ function register_recipe_categories() {
         'show_admin_column' => false,
         'show_in_nav_menus' => false,
         'show_in_rest' => true,
+        'query_var' => true,
         'show_tagcloud' => false,
     );
 

@@ -4,7 +4,7 @@ import traverse from 'traverse';
 import { 
     isStr,
     isArray, 
-    flatten
+    flatten,
 } from '../utils';
 
 import config from '../config';
@@ -45,6 +45,9 @@ const menuTransformer = (menuData) => {
 
 const featuredImageTransformer = (data) => {
     const imageData = camelcaseKeys(data, { deep: true });
+    if(!('mediaDetails' in imageData)) {
+        return null; 
+    }
 
     const imageSizeTransformer = (imageSizes) => 
         Object.keys(imageSizes)
@@ -84,6 +87,17 @@ const taxonomyTermTransformer = (terms) => {
         }, {});
 
     return camelcaseKeys(newTerms);
+};
+
+const taxonomyCategoryTransformer = (category) => {
+    return {
+        id: category.id, 
+        count: category.count, 
+        name: category.name, 
+        slug: category.slug, 
+        description: category.description,
+        taxonomy: category.taxonomy
+    }
 };
 
 // this function will remove all wp post props except those we need and convert all keys to camel case, 
@@ -153,5 +167,6 @@ export {
     routeTransformer,
     menuTransformer,
     featuredImageTransformer,
+    taxonomyCategoryTransformer,
     pageDataTransformer
 }

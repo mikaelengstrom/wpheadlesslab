@@ -27,11 +27,18 @@ const endpoints = {
         `${base}/date`,
 
     page: (id) => 
-        `${base}/wp/v2/pages/${id}`,
+        `${base}/wp/v2/pages/${id}?_embed`,
     post: (id) =>
-        `${base}/wp/v2/posts/${id}`,
+        `${base}/wp/v2/posts/${id}?_embed`,
     cpt: (id, type) => 
         `${base}/wp/v2/${type}/${id}?_embed`,
+
+    pages: () =>
+        `${base}/wp/v2/pages?_embed`,
+    posts: () =>
+        `${base}/wp/v2/posts?_embed`,
+    cpts: (type) =>
+        `${base}/wp/v2/${type}?_embed`,
 
     pageRevisions: (id) => 
         `${base}/wp/v2/pages/${id}/revisions?filter[orderby]=date&order=desc`,
@@ -48,6 +55,8 @@ const endpoints = {
     cptRevision: (id, type, revisionId) =>
         `${base}/wp/v2/${type}/${id}/revisions/${revisionId}?_embed`,
 
+    taxonomyCategories: (name) => 
+        `${base}/wp/v2/${name}`
 };
 
 debug('CMS Service: using base: ', base);
@@ -100,6 +109,29 @@ const getContent = async (id, type) => {
     return transformers
         .pageDataTransformer(resp.data);
 }
+
+const getPages = async (type) => {
+    let resp; 
+
+    debug('CMS getPages(): fetching pages of type: ', type);
+
+    switch(type) {
+        case 'page':
+            resp = await axios.get(endpoints.pages());
+            break;
+        case 'post':
+            resp = await axios.get(endpoints.posts());
+            break;
+        default: 
+            resp = await axios.get(endpoints.cpts(type));
+            break;
+    }
+
+    return resp.data.map(data => 
+        transformers.pageDataTransformer(data)
+    ); 
+}
+
 
 const getRevisions = async (id, type, nonce) => {
     let resp;
@@ -167,6 +199,17 @@ const getContentPreview = async (id, type, previewMediaId, nonce) => {
     }
 }
 
+const getTaxonomyCategories = async (name) => {
+    let resp = await axios.get(endpoints.taxonomyCategories(name));
+
+    const categories = resp.data.map(category => 
+        transformers.taxonomyCategoryTransformer(category)
+    );
+
+    debug('CMS getTaxonomyCategories(): received categories: ', categories);
+
+    return categories;
+}
 
 export {
     getRoutes,
@@ -175,4 +218,6 @@ export {
     getMedia, 
     getContent, 
     getContentPreview,
+    getPages,
+    getTaxonomyCategories
 }

@@ -3,7 +3,7 @@ import { observer } from 'mobx-react-lite';
 
 import { Link } from 'react-router-dom';
 
-import './index.scss';
+import './BlurbFull.scss';
 
 const BlurbFull = observer(({ title, image, link }) => {
     return (
