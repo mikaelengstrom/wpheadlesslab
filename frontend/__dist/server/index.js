@@ -1881,7 +1881,79 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 
 var _default = _RecipeList.default;
 exports.default = _default;
-},{"./RecipeList":"FiW8"}],"ISOy":[function(require,module,exports) {
+},{"./RecipeList":"FiW8"}],"e8sA":[function(require,module,exports) {
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.default = void 0;
+
+var _react = _interopRequireDefault(require("react"));
+
+var _reactRouterDom = require("react-router-dom");
+
+var _mobxReactLite = require("mobx-react-lite");
+
+var _reactHelmetAsync = require("react-helmet-async");
+
+var _RawHtml = _interopRequireDefault(require("../../components/RawHtml"));
+
+var cms = _interopRequireWildcard(require("../../services/cms"));
+
+var _store = require("../../store");
+
+function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) { var desc = Object.defineProperty && Object.getOwnPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : {}; if (desc.get || desc.set) { Object.defineProperty(newObj, key, desc); } else { newObj[key] = obj[key]; } } } } newObj.default = obj; return newObj; } }
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+// import { debug } from '../../utils';
+const RecipeCategoryListing = (0, _mobxReactLite.observer)(({
+  loading,
+  pageData,
+  initialProps
+}) => {
+  const store = (0, _store.useStore)();
+  const {
+    title,
+    content,
+    featuredImage
+  } = pageData;
+  console.dir('QUERY: ', store.currentQuery); // const { recipes, recipeCategories } = initialProps; 
+
+  return _react.default.createElement(_react.default.Fragment, null, _react.default.createElement(_reactHelmetAsync.Helmet, null, _react.default.createElement("title", null, `RecipeCategoryListing Page - ${title || ''}`)), _react.default.createElement("div", null, loading && _react.default.createElement("h1", null, "LOADING PAGE & PROPS!"), _react.default.createElement("h1", null, "Recipe list page: ", title), featuredImage && _react.default.createElement("img", {
+    src: featuredImage.sizes.thumbnail.url
+  }), _react.default.createElement(_RawHtml.default, {
+    html: content
+  })));
+}); // RecipeCategoryListing.getInitialProps = async () => {
+//     const [recipes, recipeCategories] = await Promise.all([
+//         cms.getPages('recipe'),
+//         cms.getTaxonomyCategories('recipe_category')
+//     ]);
+//     return {
+//         recipes,
+//         recipeCategories
+//     }
+// };
+
+var _default = RecipeCategoryListing;
+exports.default = _default;
+},{"../../components/RawHtml":"Yzzv","../../services/cms":"lAOr","../../store":"28Kg"}],"5t3e":[function(require,module,exports) {
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.default = void 0;
+
+var _RecipeCategoryListing = _interopRequireDefault(require("./RecipeCategoryListing"));
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+var _default = _RecipeCategoryListing.default;
+exports.default = _default;
+},{"./RecipeCategoryListing":"e8sA"}],"ISOy":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -1915,6 +1987,8 @@ var _Recipe = _interopRequireDefault(require("./pages/Recipe"));
 
 var _RecipeList = _interopRequireDefault(require("./pages/RecipeList"));
 
+var _RecipeCategoryListing = _interopRequireDefault(require("./pages/RecipeCategoryListing"));
+
 var _utils = require("./utils");
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
@@ -1926,7 +2000,8 @@ const pageComponents = {
   'Page': _Page.default,
   'Post': _Post.default,
   'Recipe': _Recipe.default,
-  'Recipe list': _RecipeList.default
+  'Recipe list': _RecipeList.default,
+  'Recipe category listing': _RecipeCategoryListing.default
 };
 
 const updateWpAdminBarEditButtonWithId = pageId => {
@@ -2043,7 +2118,7 @@ const App = (0, _mobxReactLite.observer)(({
 });
 var _default = App;
 exports.default = _default;
-},{"./store":"28Kg","./hooks":"k74t","./layout/Header":"ZlR1","./pages/NotFound":"e6rX","./pages/Error":"ARH/","./pages/Start":"gTCO","./pages/Page":"vry0","./pages/Post":"Dk/9","./pages/Recipe":"FRwr","./pages/RecipeList":"VrZy","./utils":"mbFY"}],"TbCL":[function(require,module,exports) {
+},{"./store":"28Kg","./hooks":"k74t","./layout/Header":"ZlR1","./pages/NotFound":"e6rX","./pages/Error":"ARH/","./pages/Start":"gTCO","./pages/Page":"vry0","./pages/Post":"Dk/9","./pages/Recipe":"FRwr","./pages/RecipeList":"VrZy","./pages/RecipeCategoryListing":"5t3e","./utils":"mbFY"}],"TbCL":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {

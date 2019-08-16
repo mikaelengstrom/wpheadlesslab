@@ -50330,7 +50330,76 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 
 var _default = _RecipeList.default;
 exports.default = _default;
-},{"./RecipeList":"ZODA"}],"0+DP":[function(require,module,exports) {
+},{"./RecipeList":"ZODA"}],"HOtw":[function(require,module,exports) {
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.default = void 0;
+
+var _react = _interopRequireDefault(require("react"));
+
+var _reactRouterDom = require("react-router-dom");
+
+var _mobxReactLite = require("mobx-react-lite");
+
+var _reactHelmetAsync = require("react-helmet-async");
+
+var _RawHtml = _interopRequireDefault(require("../../components/RawHtml"));
+
+var cms = _interopRequireWildcard(require("../../services/cms"));
+
+var _store = require("../../store");
+
+function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) { var desc = Object.defineProperty && Object.getOwnPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : {}; if (desc.get || desc.set) { Object.defineProperty(newObj, key, desc); } else { newObj[key] = obj[key]; } } } } newObj.default = obj; return newObj; } }
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+// import { debug } from '../../utils';
+var RecipeCategoryListing = (0, _mobxReactLite.observer)(function (_ref) {
+  var loading = _ref.loading,
+      pageData = _ref.pageData,
+      initialProps = _ref.initialProps;
+  var store = (0, _store.useStore)();
+  var title = pageData.title,
+      content = pageData.content,
+      featuredImage = pageData.featuredImage;
+  console.dir('QUERY: ', store.currentQuery); // const { recipes, recipeCategories } = initialProps; 
+
+  return _react.default.createElement(_react.default.Fragment, null, _react.default.createElement(_reactHelmetAsync.Helmet, null, _react.default.createElement("title", null, "RecipeCategoryListing Page - ".concat(title || ''))), _react.default.createElement("div", null, loading && _react.default.createElement("h1", null, "LOADING PAGE & PROPS!"), _react.default.createElement("h1", null, "Recipe list page: ", title), featuredImage && _react.default.createElement("img", {
+    src: featuredImage.sizes.thumbnail.url
+  }), _react.default.createElement(_RawHtml.default, {
+    html: content
+  })));
+}); // RecipeCategoryListing.getInitialProps = async () => {
+//     const [recipes, recipeCategories] = await Promise.all([
+//         cms.getPages('recipe'),
+//         cms.getTaxonomyCategories('recipe_category')
+//     ]);
+//     return {
+//         recipes,
+//         recipeCategories
+//     }
+// };
+
+var _default = RecipeCategoryListing;
+exports.default = _default;
+},{"react":"1n8/","react-router-dom":"/uc1","mobx-react-lite":"4+GV","react-helmet-async":"2FKu","../../components/RawHtml":"GLJt","../../services/cms":"CJ63","../../store":"rMii"}],"IxCO":[function(require,module,exports) {
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.default = void 0;
+
+var _RecipeCategoryListing = _interopRequireDefault(require("./RecipeCategoryListing"));
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+var _default = _RecipeCategoryListing.default;
+exports.default = _default;
+},{"./RecipeCategoryListing":"HOtw"}],"0+DP":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -50364,6 +50433,8 @@ var _Recipe = _interopRequireDefault(require("./pages/Recipe"));
 
 var _RecipeList = _interopRequireDefault(require("./pages/RecipeList"));
 
+var _RecipeCategoryListing = _interopRequireDefault(require("./pages/RecipeCategoryListing"));
+
 var _utils = require("./utils");
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
@@ -50375,7 +50446,8 @@ var pageComponents = {
   'Page': _Page.default,
   'Post': _Post.default,
   'Recipe': _Recipe.default,
-  'Recipe list': _RecipeList.default
+  'Recipe list': _RecipeList.default,
+  'Recipe category listing': _RecipeCategoryListing.default
 };
 
 var updateWpAdminBarEditButtonWithId = function updateWpAdminBarEditButtonWithId(pageId) {
@@ -50496,7 +50568,7 @@ var App = (0, _mobxReactLite.observer)(function (_ref, ref) {
 });
 var _default = App;
 exports.default = _default;
-},{"react":"1n8/","react-router-dom":"/uc1","mobx-react-lite":"4+GV","./store":"rMii","./hooks":"lVCL","./layout/Header":"P6C6","./pages/NotFound":"qI17","./pages/Error":"6ICi","./pages/Start":"79b3","./pages/Page":"rWZy","./pages/Post":"GN/M","./pages/Recipe":"Cfx1","./pages/RecipeList":"AMe5","./utils":"jWsf"}],"IVsl":[function(require,module,exports) {
+},{"react":"1n8/","react-router-dom":"/uc1","mobx-react-lite":"4+GV","./store":"rMii","./hooks":"lVCL","./layout/Header":"P6C6","./pages/NotFound":"qI17","./pages/Error":"6ICi","./pages/Start":"79b3","./pages/Page":"rWZy","./pages/Post":"GN/M","./pages/Recipe":"Cfx1","./pages/RecipeList":"AMe5","./pages/RecipeCategoryListing":"IxCO","./utils":"jWsf"}],"IVsl":[function(require,module,exports) {
 "use strict";
 
 require("core-js/modules/es6.array.copy-within");

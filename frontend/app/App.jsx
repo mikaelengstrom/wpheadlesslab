@@ -22,7 +22,7 @@ import Page from './pages/Page';
 import Post from './pages/Post';
 import Recipe from './pages/Recipe';
 import RecipeList from './pages/RecipeList';
-
+import RecipeCategoryListing from './pages/RecipeCategoryListing';
 
 import { defined, debug } from './utils';
 
@@ -31,7 +31,8 @@ const pageComponents = {
     'Page': Page, 
     'Post': Post, 
     'Recipe': Recipe,
-    'Recipe list': RecipeList
+    'Recipe list': RecipeList,
+    'Recipe category listing': RecipeCategoryListing
 };
 
 const updateWpAdminBarEditButtonWithId = (pageId) => {
