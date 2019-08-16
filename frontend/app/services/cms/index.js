@@ -1,7 +1,10 @@
 import * as transformers from '../../transformers';
 
 import config from '../../config';
-import { debug } from '../../utils';
+import { 
+    defined,
+    debug 
+} from '../../utils';
 
 import axios from 'axios';
 
@@ -40,6 +43,13 @@ const endpoints = {
     cpts: (type) =>
         `${base}/wp/v2/${type}?_embed`,
 
+    pagesInCategory: (categoryName, categoryId) =>
+        `${base}/wp/v2/pages?_embed${categoryName}=${categoryId}`,
+    postsInCategory: (categoryName, categoryId) =>
+        `${base}/wp/v2/posts?_embed${categoryName}=${categoryId}`,
+    cptsInCategory: (type, categoryName, categoryId) =>
+        `${base}/wp/v2/${type}?_embed&${categoryName}=${categoryId}`,
+
     pageRevisions: (id) => 
         `${base}/wp/v2/pages/${id}/revisions?filter[orderby]=date&order=desc`,
     pageRevision: (id, revisionId) =>
@@ -56,7 +66,10 @@ const endpoints = {
         `${base}/wp/v2/${type}/${id}/revisions/${revisionId}?_embed`,
 
     taxonomyCategories: (name) => 
-        `${base}/wp/v2/${name}`
+        `${base}/wp/v2/${name}`,
+
+    taxonomyCategory: (name, id) =>
+        `${base}/wp/v2/${name}/${id}`,
 };
 
 debug('CMS Service: using base: ', base);
@@ -128,6 +141,28 @@ const getPages = async (type) => {
     }
 
     return resp.data.map(data => 
+        transformers.pageDataTransformer(data)
+    ); 
+}
+
+const getPagesInCategory = async (type, categoryName, categoryId) => {
+    let resp;
+
+    debug('CMS getPagesInCategory(): fetching pages of type: ', type);
+
+    switch (type) {
+        case 'page':
+            resp = await axios.get(endpoints.pagesInCategory(type, categoryName, categoryId));
+            break;
+        case 'post':
+            resp = await axios.get(endpoints.postsInCategory(type, categoryName, categoryId));
+            break;
+        default:
+            resp = await axios.get(endpoints.cptsInCategory(type, categoryName, categoryId));
+            break;
+    }
+
+    return resp.data.map(data =>
         transformers.pageDataTransformer(data)
     ); 
 }
@@ -211,13 +246,24 @@ const getTaxonomyCategories = async (name) => {
     return categories;
 }
 
+const getTaxonomyCategory = async (name, id) => {
+    let resp = await axios.get(endpoints.taxonomyCategory(name, id));
+    return transformers
+        .taxonomyCategoryTransformer(resp.data);
+}
+
 export {
+    getDate,
+
     getRoutes,
     getPrimaryMenu,
-    getDate,
     getMedia, 
+    
     getContent, 
-    getContentPreview,
     getPages,
-    getTaxonomyCategories
+    getContentPreview,
+
+    getPagesInCategory,
+    getTaxonomyCategories,
+    getTaxonomyCategory
 }

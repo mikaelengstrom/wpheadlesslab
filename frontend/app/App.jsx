@@ -154,7 +154,8 @@ const App = observer(({ ssr = false }, ref) => {
         }
 
         debug('App> current loaded pageData: ', store.pageData);
-        
+        debug('App> passing query params to page component: ', store.currentQuery);
+
         return (
             <PageComponent
                 id={route.id}
@@ -164,6 +165,7 @@ const App = observer(({ ssr = false }, ref) => {
                 loading={store.loadingPageAndProps}
                 pageData={store.pageData}
                 initialProps={store.pageInitialProps}
+                pageQuery={store.currentQuery}
 
                 {...props}
             />

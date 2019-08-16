@@ -32,6 +32,9 @@ const ssrRenderer = async (req, res) => {
     debug('SSR renderer: calling store bootstrap!');
     await store.bootstrap();
 
+    debug('SSR renderer: received query params: ', req.query);
+    store.setQueryParams(req.query)
+
     const component = (
         <StoreProvider store={store}>
             <HelmetProvider context={helmetContext}>

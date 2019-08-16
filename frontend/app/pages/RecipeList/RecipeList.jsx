@@ -9,8 +9,6 @@ import RawHtml from '../../components/RawHtml';
 
 import * as cms from '../../services/cms';
 
-// import { debug } from '../../utils';
-
 const RecipeList = observer(({ loading, pageData, initialProps }) => {
     const { title, content, featuredImage } = pageData; 
     const { recipes, recipeCategories } = initialProps; 
@@ -38,7 +36,9 @@ const RecipeList = observer(({ loading, pageData, initialProps }) => {
                     <ul>
                         {recipeCategories.map(category =>
                             <li key={category.id}>
-                                {category.name}
+                                <Link to={`/recipe-category-listing/?categoryId=${category.id}`}>
+                                    {category.name}
+                                </Link>
                             </li>
                         )}
                     </ul>

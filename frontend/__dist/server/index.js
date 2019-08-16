@@ -412,7 +412,7 @@ exports.pageDataTransformer = pageDataTransformer;
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-exports.getTaxonomyCategories = exports.getPages = exports.getContentPreview = exports.getContent = exports.getMedia = exports.getDate = exports.getPrimaryMenu = exports.getRoutes = void 0;
+exports.getTaxonomyCategory = exports.getTaxonomyCategories = exports.getPagesInCategory = exports.getContentPreview = exports.getPages = exports.getContent = exports.getMedia = exports.getPrimaryMenu = exports.getRoutes = exports.getDate = void 0;
 
 var transformers = _interopRequireWildcard(require("../../transformers"));
 
@@ -453,13 +453,17 @@ const endpoints = {
   pages: () => `${base}/wp/v2/pages?_embed`,
   posts: () => `${base}/wp/v2/posts?_embed`,
   cpts: type => `${base}/wp/v2/${type}?_embed`,
+  pagesInCategory: (categoryName, categoryId) => `${base}/wp/v2/pages?_embed${categoryName}=${categoryId}`,
+  postsInCategory: (categoryName, categoryId) => `${base}/wp/v2/posts?_embed${categoryName}=${categoryId}`,
+  cptsInCategory: (type, categoryName, categoryId) => `${base}/wp/v2/${type}?_embed&${categoryName}=${categoryId}`,
   pageRevisions: id => `${base}/wp/v2/pages/${id}/revisions?filter[orderby]=date&order=desc`,
   pageRevision: (id, revisionId) => `${base}/wp/v2/pages/${id}/revisions/${revisionId}?_embed`,
   postRevisions: id => `${base}/wp/v2/posts/${id}/revisions?filter[orderby]=date&order=desc`,
   postRevision: (id, revisionId) => `${base}/wp/v2/posts/${id}/revisions/${revisionId}?_embed`,
   cptRevisions: (id, type) => `${base}/wp/v2/${type}/${id}/revisions?filter[orderby]=date&order=desc`,
   cptRevision: (id, type, revisionId) => `${base}/wp/v2/${type}/${id}/revisions/${revisionId}?_embed`,
-  taxonomyCategories: name => `${base}/wp/v2/${name}`
+  taxonomyCategories: name => `${base}/wp/v2/${name}`,
+  taxonomyCategory: (name, id) => `${base}/wp/v2/${name}/${id}`
 };
 (0, _utils.debug)('CMS Service: using base: ', base);
 
@@ -540,6 +544,29 @@ const getPages = async type => {
 
 exports.getPages = getPages;
 
+const getPagesInCategory = async (type, categoryName, categoryId) => {
+  let resp;
+  (0, _utils.debug)('CMS getPagesInCategory(): fetching pages of type: ', type);
+
+  switch (type) {
+    case 'page':
+      resp = await _axios.default.get(endpoints.pagesInCategory(type, categoryName, categoryId));
+      break;
+
+    case 'post':
+      resp = await _axios.default.get(endpoints.postsInCategory(type, categoryName, categoryId));
+      break;
+
+    default:
+      resp = await _axios.default.get(endpoints.cptsInCategory(type, categoryName, categoryId));
+      break;
+  }
+
+  return resp.data.map(data => transformers.pageDataTransformer(data));
+};
+
+exports.getPagesInCategory = getPagesInCategory;
+
 const getRevisions = async (id, type, nonce) => {
   let resp;
 
@@ -608,6 +635,13 @@ const getTaxonomyCategories = async name => {
 };
 
 exports.getTaxonomyCategories = getTaxonomyCategories;
+
+const getTaxonomyCategory = async (name, id) => {
+  let resp = await _axios.default.get(endpoints.taxonomyCategory(name, id));
+  return transformers.taxonomyCategoryTransformer(resp.data);
+};
+
+exports.getTaxonomyCategory = getTaxonomyCategory;
 },{"../../transformers":"NR1n","../../config":"LpuZ","../../utils":"mbFY"}],"/FFy":[function(require,module,exports) {
 "use strict";
 
@@ -928,7 +962,7 @@ let Store = (_class = (_temp = class Store {
     (0, _utils.debug)('Store: loadInitialProps() called - loading props!');
 
     try {
-      const props = await getInitialProps();
+      const props = await getInitialProps(this.currentQuery);
       (0, _utils.debug)('Store: fetched initial props!');
       (0, _mobx.runInAction)(() => {
         (0, _mobx.set)(this.pageInitialProps, props);
@@ -1829,7 +1863,6 @@ function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj;
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-// import { debug } from '../../utils';
 const RecipeList = (0, _mobxReactLite.observer)(({
   loading,
   pageData,
@@ -1850,7 +1883,9 @@ const RecipeList = (0, _mobxReactLite.observer)(({
     html: content
   }), _react.default.createElement("h2", null, "Available recipe categories"), recipeCategories && recipeCategories.length && _react.default.createElement("ul", null, recipeCategories.map(category => _react.default.createElement("li", {
     key: category.id
-  }, category.name))), _react.default.createElement("h2", null, "All recipes"), recipes && recipes.length && _react.default.createElement("ul", null, recipes.map(recipe => _react.default.createElement("li", {
+  }, _react.default.createElement(_reactRouterDom.Link, {
+    to: `/recipe-category-listing/?categoryId=${category.id}`
+  }, category.name)))), _react.default.createElement("h2", null, "All recipes"), recipes && recipes.length && _react.default.createElement("ul", null, recipes.map(recipe => _react.default.createElement("li", {
     key: recipe.slug
   }, _react.default.createElement(_reactRouterDom.Link, {
     to: recipe.url
@@ -1901,45 +1936,52 @@ var _RawHtml = _interopRequireDefault(require("../../components/RawHtml"));
 
 var cms = _interopRequireWildcard(require("../../services/cms"));
 
-var _store = require("../../store");
+var _utils = require("../../utils");
 
 function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) { var desc = Object.defineProperty && Object.getOwnPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : {}; if (desc.get || desc.set) { Object.defineProperty(newObj, key, desc); } else { newObj[key] = obj[key]; } } } } newObj.default = obj; return newObj; } }
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-// import { debug } from '../../utils';
 const RecipeCategoryListing = (0, _mobxReactLite.observer)(({
   loading,
   pageData,
-  initialProps
+  initialProps,
+  pageQuery
 }) => {
-  const store = (0, _store.useStore)();
   const {
     title,
     content,
     featuredImage
   } = pageData;
-  console.dir('QUERY: ', store.currentQuery); // const { recipes, recipeCategories } = initialProps; 
-
-  return _react.default.createElement(_react.default.Fragment, null, _react.default.createElement(_reactHelmetAsync.Helmet, null, _react.default.createElement("title", null, `RecipeCategoryListing Page - ${title || ''}`)), _react.default.createElement("div", null, loading && _react.default.createElement("h1", null, "LOADING PAGE & PROPS!"), _react.default.createElement("h1", null, "Recipe list page: ", title), featuredImage && _react.default.createElement("img", {
-    src: featuredImage.sizes.thumbnail.url
-  }), _react.default.createElement(_RawHtml.default, {
+  const {
+    category = {},
+    categoryPages = []
+  } = initialProps;
+  return _react.default.createElement(_react.default.Fragment, null, _react.default.createElement(_reactHelmetAsync.Helmet, null, _react.default.createElement("title", null, `RecipeCategoryListing Page - ${title || ''}`)), _react.default.createElement("div", null, loading && _react.default.createElement("h1", null, "LOADING PAGE & PROPS!"), _react.default.createElement("h1", null, title, " - ", category.name), _react.default.createElement("p", null, category.description), _react.default.createElement(_RawHtml.default, {
     html: content
-  })));
-}); // RecipeCategoryListing.getInitialProps = async () => {
-//     const [recipes, recipeCategories] = await Promise.all([
-//         cms.getPages('recipe'),
-//         cms.getTaxonomyCategories('recipe_category')
-//     ]);
-//     return {
-//         recipes,
-//         recipeCategories
-//     }
-// };
+  }), featuredImage && _react.default.createElement("img", {
+    src: featuredImage.sizes.thumbnail.url
+  }), !loading && _react.default.createElement(_react.default.Fragment, null, _react.default.createElement("h2", null, "Pages in this category: "), categoryPages.length ? categoryPages.map(page => _react.default.createElement(_reactRouterDom.Link, {
+    key: page.slug,
+    to: page.url
+  }, page.title)) : 'No pages :(')));
+});
+
+RecipeCategoryListing.getInitialProps = async pageQuery => {
+  const {
+    categoryId
+  } = pageQuery;
+  const [category, categoryPages] = await Promise.all([cms.getTaxonomyCategory('recipe_category', categoryId), cms.getPagesInCategory('recipe', 'recipe_category', categoryId)]);
+  (0, _utils.debug)(`RecipeCategoryListing> received pages for category id ${categoryId}: `, categoryPages);
+  return {
+    category,
+    categoryPages
+  };
+};
 
 var _default = RecipeCategoryListing;
 exports.default = _default;
-},{"../../components/RawHtml":"Yzzv","../../services/cms":"lAOr","../../store":"28Kg"}],"5t3e":[function(require,module,exports) {
+},{"../../components/RawHtml":"Yzzv","../../services/cms":"lAOr","../../utils":"mbFY"}],"5t3e":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -2093,13 +2135,15 @@ const App = (0, _mobxReactLite.observer)(({
     }
 
     (0, _utils.debug)('App> current loaded pageData: ', store.pageData);
+    (0, _utils.debug)('App> passing query params to page component: ', store.currentQuery);
     return _react.default.createElement(PageComponent, _extends({
       id: route.id,
       type: route.postType,
       url: route.url,
       loading: store.loadingPageAndProps,
       pageData: store.pageData,
-      initialProps: store.pageInitialProps
+      initialProps: store.pageInitialProps,
+      pageQuery: store.currentQuery
     }, props));
   };
 
@@ -2155,6 +2199,8 @@ const ssrRenderer = async (req, res) => {
   const store = new _store.Store();
   (0, _utils.debug)('SSR renderer: calling store bootstrap!');
   await store.bootstrap();
+  (0, _utils.debug)('SSR renderer: received query params: ', req.query);
+  store.setQueryParams(req.query);
 
   const component = _react.default.createElement(_store.StoreProvider, {
     store: store

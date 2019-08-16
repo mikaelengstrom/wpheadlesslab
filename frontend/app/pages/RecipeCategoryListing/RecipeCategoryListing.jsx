@@ -9,17 +9,12 @@ import RawHtml from '../../components/RawHtml';
 
 import * as cms from '../../services/cms';
 
-import { useStore } from '../../store';
+import { debug } from '../../utils';
 
-// import { debug } from '../../utils';
-
-const RecipeCategoryListing = observer(({ loading, pageData, initialProps }) => {
-    const store = useStore(); 
+const RecipeCategoryListing = observer(({ loading, pageData, initialProps, pageQuery }) => {
     const { title, content, featuredImage } = pageData; 
-
-    console.dir('QUERY: ', store.currentQuery);
-    // const { recipes, recipeCategories } = initialProps; 
-
+    const { category = {}, categoryPages = [] } = initialProps; 
+    
     return (
         <>
             <Helmet>
@@ -30,29 +25,48 @@ const RecipeCategoryListing = observer(({ loading, pageData, initialProps }) => 
                     <h1>LOADING PAGE & PROPS!</h1>
                 }
 
-                <h1>Recipe list page: {title}</h1>
+                <h1>{title} - {category.name}</h1>
+                <p>{category.description}</p>
+
+                <RawHtml html={content} />
 
                 {featuredImage &&
                     <img src={featuredImage.sizes.thumbnail.url} />
                 }
-                
-                <RawHtml html={content} />
+
+                {!loading &&
+                    <>
+                        <h2>Pages in this category: </h2>
+                        {categoryPages.length
+                            ? categoryPages.map(page =>
+                                <Link key={page.slug} to={page.url}>
+                                    {page.title}
+                                </Link>
+                            )
+                            : 'No pages :('
+                        }
+                    </>
+                }
 
             </div>
         </>
     );
 });
 
-// RecipeCategoryListing.getInitialProps = async () => {
-//     const [recipes, recipeCategories] = await Promise.all([
-//         cms.getPages('recipe'),
-//         cms.getTaxonomyCategories('recipe_category')
-//     ]);
+RecipeCategoryListing.getInitialProps = async (pageQuery) => {
+    const { categoryId } = pageQuery; 
+    
+    const [category, categoryPages] = await Promise.all([
+        cms.getTaxonomyCategory('recipe_category', categoryId),
+        cms.getPagesInCategory('recipe', 'recipe_category', categoryId)
+    ]);
 
-//     return {
-//         recipes,
-//         recipeCategories
-//     }
-// };
+    debug(`RecipeCategoryListing> received pages for category id ${categoryId}: `, categoryPages);
+
+    return {
+        category, 
+        categoryPages
+    }
+};
 
 export default RecipeCategoryListing;

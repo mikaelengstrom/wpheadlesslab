@@ -11,7 +11,7 @@ import * as cms from '../../services/cms';
 const Recipe = observer(({ loading, id, url, pageData, initialProps }) => {
     const { title, content, featuredImage, recipeScore, recipeCategory, blocks } = pageData; 
     const { date } = initialProps; 
-
+    
     return (
         <>
             <Helmet>

@@ -272,7 +272,7 @@ class Store {
         debug('Store: loadInitialProps() called - loading props!');
 
         try {
-            const props = await getInitialProps();
+            const props = await getInitialProps(this.currentQuery);
             debug('Store: fetched initial props!');
 
             runInAction(() => {
