@@ -45,7 +45,7 @@ add_action('rest_api_init', function () {
 
                 if($template) {
                     $data = get_file_data($template, ['Name' => 'Template Name']);
-                    $component = $data['Name'];
+                    $component = str_replace(' ', '', ucwords($data['Name']));
                 }
 
                 $url = str_replace(WP_HOME, '', get_permalink($page->ID));

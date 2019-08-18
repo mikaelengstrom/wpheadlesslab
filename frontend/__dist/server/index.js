@@ -1884,7 +1884,7 @@ const RecipeList = (0, _mobxReactLite.observer)(({
   }), _react.default.createElement("h2", null, "Available recipe categories"), recipeCategories && recipeCategories.length && _react.default.createElement("ul", null, recipeCategories.map(category => _react.default.createElement("li", {
     key: category.id
   }, _react.default.createElement(_reactRouterDom.Link, {
-    to: `/recipe-category-listing/?categoryId=${category.id}`
+    to: `/recipes/recipes-by-category/?categoryId=${category.id}`
   }, category.name)))), _react.default.createElement("h2", null, "All recipes"), recipes && recipes.length && _react.default.createElement("ul", null, recipes.map(recipe => _react.default.createElement("li", {
     key: recipe.slug
   }, _react.default.createElement(_reactRouterDom.Link, {
@@ -2042,8 +2042,8 @@ const pageComponents = {
   'Page': _Page.default,
   'Post': _Post.default,
   'Recipe': _Recipe.default,
-  'Recipe list': _RecipeList.default,
-  'Recipe category listing': _RecipeCategoryListing.default
+  'RecipeList': _RecipeList.default,
+  'RecipeCategoryListing': _RecipeCategoryListing.default
 };
 
 const updateWpAdminBarEditButtonWithId = pageId => {

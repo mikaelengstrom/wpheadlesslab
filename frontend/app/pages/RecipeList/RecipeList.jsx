@@ -36,7 +36,7 @@ const RecipeList = observer(({ loading, pageData, initialProps }) => {
                     <ul>
                         {recipeCategories.map(category =>
                             <li key={category.id}>
-                                <Link to={`/recipe-category-listing/?categoryId=${category.id}`}>
+                                <Link to={`/recipes/recipes-by-category/?categoryId=${category.id}`}>
                                     {category.name}
                                 </Link>
                             </li>

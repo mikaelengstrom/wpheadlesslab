@@ -50379,7 +50379,7 @@ var RecipeList = (0, _mobxReactLite.observer)(function (_ref) {
     return _react.default.createElement("li", {
       key: category.id
     }, _react.default.createElement(_reactRouterDom.Link, {
-      to: "/recipe-category-listing/?categoryId=".concat(category.id)
+      to: "/recipes/recipes-by-category/?categoryId=".concat(category.id)
     }, category.name));
   })), _react.default.createElement("h2", null, "All recipes"), recipes && recipes.length && _react.default.createElement("ul", null, recipes.map(function (recipe) {
     return _react.default.createElement("li", {
@@ -50601,8 +50601,8 @@ var pageComponents = {
   'Page': _Page.default,
   'Post': _Post.default,
   'Recipe': _Recipe.default,
-  'Recipe list': _RecipeList.default,
-  'Recipe category listing': _RecipeCategoryListing.default
+  'RecipeList': _RecipeList.default,
+  'RecipeCategoryListing': _RecipeCategoryListing.default
 };
 
 var updateWpAdminBarEditButtonWithId = function updateWpAdminBarEditButtonWithId(pageId) {

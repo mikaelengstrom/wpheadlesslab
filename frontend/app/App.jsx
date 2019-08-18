@@ -31,8 +31,8 @@ const pageComponents = {
     'Page': Page, 
     'Post': Post, 
     'Recipe': Recipe,
-    'Recipe list': RecipeList,
-    'Recipe category listing': RecipeCategoryListing
+    'RecipeList': RecipeList,
+    'RecipeCategoryListing': RecipeCategoryListing
 };
 
 const updateWpAdminBarEditButtonWithId = (pageId) => {
