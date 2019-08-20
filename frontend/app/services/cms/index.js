@@ -67,9 +67,10 @@ const endpoints = {
 
     taxonomyCategories: (name) => 
         `${base}/wp/v2/${name}`,
-
     taxonomyCategory: (name, id) =>
         `${base}/wp/v2/${name}/${id}`,
+    taxonomyCategorySlug: (name, slug) =>
+        `${base}/wp/v2/${name}?slug=${slug}`,
 };
 
 debug('CMS Service: using base: ', base);
@@ -145,20 +146,20 @@ const getPages = async (type) => {
     ); 
 }
 
-const getPagesInCategory = async (type, categoryName, categoryId) => {
+const getPagesInCategory = async (type, taxonomyName, categoryId) => {
     let resp;
 
     debug('CMS getPagesInCategory(): fetching pages of type: ', type);
 
     switch (type) {
         case 'page':
-            resp = await axios.get(endpoints.pagesInCategory(type, categoryName, categoryId));
+            resp = await axios.get(endpoints.pagesInCategory(type, taxonomyName, categoryId));
             break;
         case 'post':
-            resp = await axios.get(endpoints.postsInCategory(type, categoryName, categoryId));
+            resp = await axios.get(endpoints.postsInCategory(type, taxonomyName, categoryId));
             break;
         default:
-            resp = await axios.get(endpoints.cptsInCategory(type, categoryName, categoryId));
+            resp = await axios.get(endpoints.cptsInCategory(type, taxonomyName, categoryId));
             break;
     }
 
@@ -252,6 +253,12 @@ const getTaxonomyCategory = async (name, id) => {
         .taxonomyCategoryTransformer(resp.data);
 }
 
+const getTaxonomyCategorySlug = async (name, slug) => {
+    let resp = await axios.get(endpoints.taxonomyCategorySlug(name, slug));
+    return transformers
+        .taxonomyCategoryTransformer(resp.data[0]);
+}
+
 export {
     getDate,
 
@@ -265,5 +272,6 @@ export {
 
     getPagesInCategory,
     getTaxonomyCategories,
-    getTaxonomyCategory
+    getTaxonomyCategory,
+    getTaxonomyCategorySlug
 }

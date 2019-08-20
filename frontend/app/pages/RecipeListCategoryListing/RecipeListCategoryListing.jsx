@@ -1,6 +1,9 @@
 import React from 'react';
 
-import { Link } from 'react-router-dom';
+import { 
+    Link,
+    Redirect
+} from 'react-router-dom';
 
 import { observer } from 'mobx-react-lite';
 import { Helmet } from 'react-helmet-async';
@@ -9,16 +12,33 @@ import RawHtml from '../../components/RawHtml';
 
 import * as cms from '../../services/cms';
 
-import { debug } from '../../utils';
+import { 
+    defined, 
+    debug,
+    runningInBrowser
+} from '../../utils';
 
-const RecipeCategoryListing = observer(({ loading, pageData, initialProps, pageQuery }) => {
+import { useStore } from '../../store';
+
+const RecipeListCategoryListing = observer(({ loading, pageData, initialProps, urlParams }) => {
+    const store = useStore(); 
+
+    const { categorySlug } = urlParams; 
     const { title, content, featuredImage } = pageData; 
     const { category = {}, categoryPages = [] } = initialProps; 
-    
+
+    if (!defined(categorySlug)) {
+        const parentUrl = store.getRouteByComponentName('RecipeList');
+
+        return (
+            <Redirect to={parentUrl} />
+        );
+    }
+
     return (
         <>
             <Helmet>
-                <title>{`RecipeCategoryListing Page - ${title || ''}`}</title>
+                <title>{`RecipeListCategoryListing Page - ${title || ''}`}</title>
             </Helmet>
             <div>
                 {loading &&
@@ -43,7 +63,7 @@ const RecipeCategoryListing = observer(({ loading, pageData, initialProps, pageQ
                                     {page.title}
                                 </Link>
                             )
-                            : 'No pages :('
+                            : 'No recipes found :('
                         }
                     </>
                 }
@@ -53,15 +73,19 @@ const RecipeCategoryListing = observer(({ loading, pageData, initialProps, pageQ
     );
 });
 
-RecipeCategoryListing.getInitialProps = async (pageQuery) => {
-    const { categoryId } = pageQuery; 
-    
-    const [category, categoryPages] = await Promise.all([
-        cms.getTaxonomyCategory('recipe_category', categoryId),
-        cms.getPagesInCategory('recipe', 'recipe_category', categoryId)
-    ]);
+RecipeListCategoryListing.routeOptions = {
+    params: ':categorySlug*'
+};
 
-    debug(`RecipeCategoryListing> received pages for category id ${categoryId}: `, categoryPages);
+RecipeListCategoryListing.getInitialProps = async ({ urlParams }) => {
+    const { categorySlug } = urlParams; 
+
+    if(!defined(categorySlug)) {
+        return {}; 
+    }
+
+    const category = await cms.getTaxonomyCategorySlug('recipe_category', categorySlug);    
+    const categoryPages = await cms.getPagesInCategory('recipe', 'recipe_category', category.id);
 
     return {
         category, 
@@ -69,4 +93,4 @@ RecipeCategoryListing.getInitialProps = async (pageQuery) => {
     }
 };
 
-export default RecipeCategoryListing;
+export default RecipeListCategoryListing;

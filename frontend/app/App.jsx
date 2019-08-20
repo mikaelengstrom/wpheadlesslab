@@ -13,7 +13,7 @@ import {
     usePrevious, 
 } from './hooks';
 
-import Header from './layout/Header';
+import Layout from './layout/Layout';
 import NotFound from './pages/NotFound';
 import Error from './pages/Error';
 
@@ -22,9 +22,13 @@ import Page from './pages/Page';
 import Post from './pages/Post';
 import Recipe from './pages/Recipe';
 import RecipeList from './pages/RecipeList';
-import RecipeCategoryListing from './pages/RecipeCategoryListing';
+import RecipeListCategoryListing from './pages/RecipeListCategoryListing';
 
-import { defined, debug } from './utils';
+import { 
+    defined, 
+    definedNotNull,
+    debug 
+} from './utils';
 
 const pageComponents = {
     'Start': Start, 
@@ -32,7 +36,7 @@ const pageComponents = {
     'Post': Post, 
     'Recipe': Recipe,
     'RecipeList': RecipeList,
-    'RecipeCategoryListing': RecipeCategoryListing
+    'RecipeListCategoryListing': RecipeListCategoryListing
 };
 
 const updateWpAdminBarEditButtonWithId = (pageId) => {
@@ -52,7 +56,7 @@ const updateWpAdminBarEditButtonWithId = (pageId) => {
     }
 }
 
-const LocationSwitch = withRouter((props) => {
+const LocationSwitch = withRouter((props) => {    
     const store = useStore();
 
     const { children } = props; 
@@ -106,14 +110,17 @@ const App = observer(({ ssr = false }, ref) => {
     }
 
     const renderRoute = (props, route) => {
-        debug('App> renderRoute() called');
+        const urlParams = props.match.params; 
+
+        debug('App> renderRoute() called, url params received: ', urlParams);
         debug('App> has location changed?', store.locationChanged);
 
         let PageComponent = pageComponents[route.component];
 
         if(!defined(PageComponent)) {
-            const message = `Could not render page - no React component mapped to name "${route.component}" found!`; 
-            console.error(`App> Could not render page - no React component mapped to name "${route.component}" found!`);
+            const message = `Could not render page - no React component mapped to name "${route.component}" could be found!`; 
+            
+            console.error(`App> ${message}`);
 
             PageComponent = () => (
                 <Error 
@@ -124,7 +131,7 @@ const App = observer(({ ssr = false }, ref) => {
         }
 
         // expose promises in ref (enables us to wait for 
-        // data load when doing ssr, see server/lib/ssr/index.js).
+        // data load when doing ssr, see server/lib/ssr/index.js)
 
         if(ref && defined(ref.current) && ref.current === null) { // ssr
             debug('App> renderRoute is triggering SSR data & props load procedure - will not render this run'); 
@@ -133,6 +140,7 @@ const App = observer(({ ssr = false }, ref) => {
                 contentPromise: store.loadContentAndInitialProps(
                     route.id, 
                     route.postType, 
+                    urlParams, 
                     PageComponent.getInitialProps
                 )
             };
@@ -147,6 +155,7 @@ const App = observer(({ ssr = false }, ref) => {
             store.loadContentAndInitialProps(
                 route.id, 
                 route.postType, 
+                urlParams, 
                 PageComponent.getInitialProps
             );
 
@@ -155,6 +164,7 @@ const App = observer(({ ssr = false }, ref) => {
 
         debug('App> current loaded pageData: ', store.pageData);
         debug('App> passing query params to page component: ', store.currentQuery);
+        debug('App> passing url params to page component: ', urlParams);
 
         return (
             <PageComponent
@@ -166,6 +176,7 @@ const App = observer(({ ssr = false }, ref) => {
                 pageData={store.pageData}
                 initialProps={store.pageInitialProps}
                 pageQuery={store.currentQuery}
+                urlParams={urlParams}
 
                 {...props}
             />
@@ -173,20 +184,37 @@ const App = observer(({ ssr = false }, ref) => {
     };
 
     return (
-        <>
-            <Header />
+        <Layout>
             <LocationSwitch ssr={ssr}>
-                {store.routes.map(route => (
-                    <Route
-                        exact
-                        key={route.url}
-                        path={route.url}
-                        render={(props) => renderRoute(props, route)}
-                    />
-                ))}
+                {store.routes.map(route => {
+                    // check if this component is configured to accept url params, i.e.:
+                    // ':categorySlug*/:name*'
+
+                    const componentAcceptsUrlParams = defined(pageComponents[route.component])
+                        && definedNotNull(pageComponents[route.component].routeOptions);
+
+                    const path = componentAcceptsUrlParams
+                        ? `${route.url}${pageComponents[route.component].routeOptions.params}`
+                        : route.url;
+
+                    if (componentAcceptsUrlParams) {
+                        debug(`App> routing component ${route.component} with url params: ${route.url}${pageComponents[route.component].routeOptions.params}`);
+                    }
+
+                    return (
+                        <Route
+                            exact={!componentAcceptsUrlParams}
+                            key={route.url}
+                            path={path}
+                            render={(props) =>
+                                renderRoute(props, route)
+                            }
+                        />
+                    );
+                })}
                 <Route component={NotFound} />
             </LocationSwitch>
-        </>
+        </Layout>
     );
 
 }, { forwardRef: true });

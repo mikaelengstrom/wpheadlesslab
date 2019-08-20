@@ -22,6 +22,7 @@ import { debug }  from '../../../app/utils';
 useStaticRendering(true);
 
 const ssrRenderer = async (req, res) => {
+    debug(`\n\nSSR renderer: rendering url "${req.originalUrl}"`)
     let appRef = createRef(null);
 
     const context = {};
@@ -75,7 +76,9 @@ const ssrRenderer = async (req, res) => {
     `;
 
     if (context.url) {
-        debug('SSR renderer: 301 redirect!');
+        debug('SSR renderer: 301 redirect triggered by react-router!');
+        debug(`SSR renderer: redirecting to "${context.url}"`);
+
         res.writeHead(301, { Location: context.url });
         res.end();
     } else {

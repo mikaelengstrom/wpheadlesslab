@@ -16,7 +16,8 @@ function fetch_ssr_component() {
     $has_preview_query = strpos($_SERVER['REQUEST_URI'], '?') !== false
         && isset($_GET['preview']);
 
-    // don't do ssr for wp post previews (for simplicity)
+    // don't do ssr for wp post previews (for simplicity's sake)
+
     if($has_preview_query) {
         return $container_html;
     }
@@ -25,10 +26,24 @@ function fetch_ssr_component() {
         $url = WP_SSR_HOST . $_SERVER['REQUEST_URI'];
         $client = new \GuzzleHttp\Client();
 
-        $resp = $client->request('GET', $url);
-        $ssr_html = $resp->getBody();
+        $resp = $client->request('GET', $url, ['allow_redirects' => false]);
 
+        // if react-router triggered a redirect,
+        // the ssr server will trigger a http redirect in turn.
+        //
+        // we'll propagate that manually in order to keep urls/headers/wp plugins
+        // in sync with the current req url instead of allowing Guzzle to follow it automatically
+
+        $respStatus = $resp->getStatusCode();
+        if($respStatus == 301 || $respStatus == 302) {
+            $location = WP_HOME . $resp->getHeader('location')[0];
+            header("Location: {$location}");
+            die;
+        }
+
+        $ssr_html = $resp->getBody();
         return $ssr_html;
+
     } catch (\GuzzleHttp\Exception\BadResponseException $e) {
         return $container_html;
     } catch(\GuzzleHttp\Exception\ConnectException $e) {

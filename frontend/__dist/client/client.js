@@ -34462,7 +34462,7 @@ module.exports = Array.isArray || function (arr) {
   return Object.prototype.toString.call(arr) == '[object Array]';
 };
 
-},{}],"Tvs4":[function(require,module,exports) {
+},{}],"627V":[function(require,module,exports) {
 var isarray = require('isarray')
 
 /**
@@ -35777,7 +35777,7 @@ if ("development" !== "production") {
     global[key] = "esm";
   }
 }
-},{"mini-create-react-context":"f/Iz","@babel/runtime/helpers/esm/inheritsLoose":"S11h","react":"1n8/","prop-types":"5D9O","tiny-warning":"sIbj","history":"/Wop","tiny-invariant":"1bfQ","path-to-regexp":"Tvs4","@babel/runtime/helpers/esm/extends":"SpjQ","react-is":"H1RQ","@babel/runtime/helpers/esm/objectWithoutPropertiesLoose":"3Vab","hoist-non-react-statics":"89El"}],"/uc1":[function(require,module,exports) {
+},{"mini-create-react-context":"f/Iz","@babel/runtime/helpers/esm/inheritsLoose":"S11h","react":"1n8/","prop-types":"5D9O","tiny-warning":"sIbj","history":"/Wop","tiny-invariant":"1bfQ","path-to-regexp":"627V","@babel/runtime/helpers/esm/extends":"SpjQ","react-is":"H1RQ","@babel/runtime/helpers/esm/objectWithoutPropertiesLoose":"3Vab","hoist-non-react-statics":"89El"}],"/uc1":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -45113,7 +45113,7 @@ function _objectSpread(target) { for (var i = 1; i < arguments.length; i++) { va
 function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
 
 var generalConfig = {
-  cacheTtl: 5 * 1000
+  cacheTtl: 10 * 1000
 };
 var devDefaultConfig = {
   wpHome: 'http://repress.dev.test:8880',
@@ -47768,7 +47768,7 @@ module.exports = require('./lib/axios');
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-exports.getTaxonomyCategory = exports.getTaxonomyCategories = exports.getPagesInCategory = exports.getContentPreview = exports.getPages = exports.getContent = exports.getMedia = exports.getPrimaryMenu = exports.getRoutes = exports.getDate = void 0;
+exports.getTaxonomyCategorySlug = exports.getTaxonomyCategory = exports.getTaxonomyCategories = exports.getPagesInCategory = exports.getContentPreview = exports.getPages = exports.getContent = exports.getMedia = exports.getPrimaryMenu = exports.getRoutes = exports.getDate = void 0;
 
 var transformers = _interopRequireWildcard(require("../../transformers"));
 
@@ -47875,6 +47875,9 @@ var endpoints = {
   },
   taxonomyCategory: function taxonomyCategory(name, id) {
     return "".concat(base, "/wp/v2/").concat(name, "/").concat(id);
+  },
+  taxonomyCategorySlug: function taxonomyCategorySlug(name, slug) {
+    return "".concat(base, "/wp/v2/").concat(name, "?slug=").concat(slug);
   }
 };
 (0, _utils.debug)('CMS Service: using base: ', base);
@@ -48136,7 +48139,7 @@ var getPagesInCategory =
 function () {
   var _ref7 = _asyncToGenerator(
   /*#__PURE__*/
-  regeneratorRuntime.mark(function _callee7(type, categoryName, categoryId) {
+  regeneratorRuntime.mark(function _callee7(type, taxonomyName, categoryId) {
     var resp;
     return regeneratorRuntime.wrap(function _callee7$(_context7) {
       while (1) {
@@ -48149,7 +48152,7 @@ function () {
 
           case 4:
             _context7.next = 6;
-            return _axios.default.get(endpoints.pagesInCategory(type, categoryName, categoryId));
+            return _axios.default.get(endpoints.pagesInCategory(type, taxonomyName, categoryId));
 
           case 6:
             resp = _context7.sent;
@@ -48157,7 +48160,7 @@ function () {
 
           case 8:
             _context7.next = 10;
-            return _axios.default.get(endpoints.postsInCategory(type, categoryName, categoryId));
+            return _axios.default.get(endpoints.postsInCategory(type, taxonomyName, categoryId));
 
           case 10:
             resp = _context7.sent;
@@ -48165,7 +48168,7 @@ function () {
 
           case 12:
             _context7.next = 14;
-            return _axios.default.get(endpoints.cptsInCategory(type, categoryName, categoryId));
+            return _axios.default.get(endpoints.cptsInCategory(type, taxonomyName, categoryId));
 
           case 14:
             resp = _context7.sent;
@@ -48422,6 +48425,39 @@ function () {
 }();
 
 exports.getTaxonomyCategory = getTaxonomyCategory;
+
+var getTaxonomyCategorySlug =
+/*#__PURE__*/
+function () {
+  var _ref15 = _asyncToGenerator(
+  /*#__PURE__*/
+  regeneratorRuntime.mark(function _callee13(name, slug) {
+    var resp;
+    return regeneratorRuntime.wrap(function _callee13$(_context13) {
+      while (1) {
+        switch (_context13.prev = _context13.next) {
+          case 0:
+            _context13.next = 2;
+            return _axios.default.get(endpoints.taxonomyCategorySlug(name, slug));
+
+          case 2:
+            resp = _context13.sent;
+            return _context13.abrupt("return", transformers.taxonomyCategoryTransformer(resp.data[0]));
+
+          case 4:
+          case "end":
+            return _context13.stop();
+        }
+      }
+    }, _callee13);
+  }));
+
+  return function getTaxonomyCategorySlug(_x23, _x24) {
+    return _ref15.apply(this, arguments);
+  };
+}();
+
+exports.getTaxonomyCategorySlug = getTaxonomyCategorySlug;
 },{"../../transformers":"Dcf6","../../config":"yMXu","../../utils":"jWsf","axios":"dZBD"}],"q5ME":[function(require,module,exports) {
 "use strict";
 
@@ -48692,6 +48728,14 @@ function () {
       }
 
       return null;
+    }
+  }, {
+    key: "getRouteByComponentName",
+    value: function getRouteByComponentName(name) {
+      var foundRoutes = this.routes.filter(function (route) {
+        return route.component === name;
+      });
+      return foundRoutes.length ? foundRoutes[0].url : null;
     } // actions
 
   }, {
@@ -48793,7 +48837,7 @@ function () {
     value: function () {
       var _loadContentAndInitialProps = _asyncToGenerator(
       /*#__PURE__*/
-      regeneratorRuntime.mark(function _callee4(id, type, getInitialProps) {
+      regeneratorRuntime.mark(function _callee4(id, type, urlParams, getInitialProps) {
         var _this5 = this;
 
         var loadContent, loadInitialProps;
@@ -48819,7 +48863,7 @@ function () {
                 };
 
                 loadInitialProps = function loadInitialProps() {
-                  return (0, _utils.isFn)(getInitialProps) ? _this5.loadInitialProps(getInitialProps) : undefined;
+                  return (0, _utils.isFn)(getInitialProps) ? _this5.loadInitialProps(getInitialProps, urlParams) : undefined;
                 };
 
                 _context4.next = 12;
@@ -48838,7 +48882,7 @@ function () {
         }, _callee4, this);
       }));
 
-      function loadContentAndInitialProps(_x, _x2, _x3) {
+      function loadContentAndInitialProps(_x, _x2, _x3, _x4) {
         return _loadContentAndInitialProps.apply(this, arguments);
       }
 
@@ -48864,7 +48908,6 @@ function () {
                   break;
                 }
 
-                // this.pageData = observable.object({});
                 (0, _mobx.set)(this.pageData, cache.get(id));
                 (0, _utils.debug)('Store: loadContent() - page data found in cache, returning cached data');
                 return _context5.abrupt("return");
@@ -48877,7 +48920,6 @@ function () {
               case 8:
                 content = _context5.sent;
                 (0, _mobx.runInAction)(function () {
-                  // this.pageData = observable.object({}); 
                   cache.set(id, content);
                   (0, _mobx.set)(_this6.pageData, content);
                   (0, _utils.debug)('Store: set pageData: ', _this6.pageData);
@@ -48901,7 +48943,7 @@ function () {
         }, _callee5, this, [[5, 12]]);
       }));
 
-      function loadContent(_x4, _x5) {
+      function loadContent(_x5, _x6) {
         return _loadContent.apply(this, arguments);
       }
 
@@ -48953,7 +48995,7 @@ function () {
         }, _callee6, this, [[3, 10]]);
       }));
 
-      function loadContentPreview(_x6, _x7) {
+      function loadContentPreview(_x7, _x8) {
         return _loadContentPreview.apply(this, arguments);
       }
 
@@ -48964,7 +49006,7 @@ function () {
     value: function () {
       var _loadInitialProps = _asyncToGenerator(
       /*#__PURE__*/
-      regeneratorRuntime.mark(function _callee7(getInitialProps) {
+      regeneratorRuntime.mark(function _callee7(getInitialProps, urlParams) {
         var _this8 = this;
 
         var props;
@@ -48975,7 +49017,10 @@ function () {
                 (0, _utils.debug)('Store: loadInitialProps() called - loading props!');
                 _context7.prev = 1;
                 _context7.next = 4;
-                return getInitialProps(this.currentQuery);
+                return getInitialProps({
+                  urlParams: urlParams,
+                  pageQuery: this.currentQuery
+                });
 
               case 4:
                 props = _context7.sent;
@@ -49002,7 +49047,7 @@ function () {
         }, _callee7, this, [[1, 9]]);
       }));
 
-      function loadInitialProps(_x8) {
+      function loadInitialProps(_x9, _x10) {
         return _loadInitialProps.apply(this, arguments);
       }
 
@@ -49627,8 +49672,8 @@ function useForceSsrLoad() {
       didReload = _useState2[0],
       setDidReload = _useState2[1];
 
-  if ("client" === 'client' && store.serverSideBootstrapped) {
-    var _queryString$parse = _queryString.default.parse(location.search),
+  if ((0, _utils.runningInBrowser)() && store.serverSideBootstrapped) {
+    var _queryString$parse = _queryString.default.parse(window.location.search),
         r = _queryString$parse.r;
 
     if (!r && !didReload && store.locationChanged) {
@@ -49723,7 +49768,86 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 
 var _default = _Header.default;
 exports.default = _default;
-},{"./Header":"J0m2"}],"EhCC":[function(require,module,exports) {
+},{"./Header":"J0m2"}],"WXeE":[function(require,module,exports) {
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.default = void 0;
+
+var _react = _interopRequireDefault(require("react"));
+
+var _reactRouterDom = require("react-router-dom");
+
+var _mobxReactLite = require("mobx-react-lite");
+
+require("./Footer.scss");
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+var Footer = (0, _mobxReactLite.observer)(function () {
+  return _react.default.createElement("footer", {
+    className: "Footer"
+  }, "A small footer (c) 2019");
+});
+var _default = Footer;
+exports.default = _default;
+},{"react":"1n8/","react-router-dom":"/uc1","mobx-react-lite":"4+GV","./Footer.scss":"7B16"}],"oy9P":[function(require,module,exports) {
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.default = void 0;
+
+var _Footer = _interopRequireDefault(require("./Footer"));
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+var _default = _Footer.default;
+exports.default = _default;
+},{"./Footer":"WXeE"}],"FmU0":[function(require,module,exports) {
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.default = void 0;
+
+var _react = _interopRequireDefault(require("react"));
+
+var _Header = _interopRequireDefault(require("../Header"));
+
+var _Footer = _interopRequireDefault(require("../Footer"));
+
+var _mobxReactLite = require("mobx-react-lite");
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+var Layout = (0, _mobxReactLite.observer)(function (_ref) {
+  var children = _ref.children;
+  return _react.default.createElement("div", {
+    className: "Layout"
+  }, _react.default.createElement(_Header.default, null), children, _react.default.createElement(_Footer.default, null));
+});
+var _default = Layout;
+exports.default = _default;
+},{"react":"1n8/","../Header":"P6C6","../Footer":"oy9P","mobx-react-lite":"4+GV"}],"RzAi":[function(require,module,exports) {
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.default = void 0;
+
+var _Layout = _interopRequireDefault(require("./Layout"));
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+var _default = _Layout.default;
+exports.default = _default;
+},{"./Layout":"FmU0"}],"EhCC":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -50346,6 +50470,8 @@ var _RawHtml = _interopRequireDefault(require("../../components/RawHtml"));
 
 var cms = _interopRequireWildcard(require("../../services/cms"));
 
+var _store = require("../../store");
+
 function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) { var desc = Object.defineProperty && Object.getOwnPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : {}; if (desc.get || desc.set) { Object.defineProperty(newObj, key, desc); } else { newObj[key] = obj[key]; } } } } newObj.default = obj; return newObj; } }
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
@@ -50366,11 +50492,13 @@ var RecipeList = (0, _mobxReactLite.observer)(function (_ref) {
   var loading = _ref.loading,
       pageData = _ref.pageData,
       initialProps = _ref.initialProps;
+  var store = (0, _store.useStore)();
   var title = pageData.title,
       content = pageData.content,
       featuredImage = pageData.featuredImage;
   var recipes = initialProps.recipes,
       recipeCategories = initialProps.recipeCategories;
+  var recipesBycategoryUrl = store.getRouteByComponentName('RecipeListCategoryListing');
   return _react.default.createElement(_react.default.Fragment, null, _react.default.createElement(_reactHelmetAsync.Helmet, null, _react.default.createElement("title", null, "RecipeList Page - ".concat(title || ''))), _react.default.createElement("div", null, loading && _react.default.createElement("h1", null, "LOADING PAGE & PROPS!"), _react.default.createElement("h1", null, "Recipe list page: ", title), featuredImage && _react.default.createElement("img", {
     src: featuredImage.sizes.thumbnail.url
   }), _react.default.createElement(_RawHtml.default, {
@@ -50379,7 +50507,7 @@ var RecipeList = (0, _mobxReactLite.observer)(function (_ref) {
     return _react.default.createElement("li", {
       key: category.id
     }, _react.default.createElement(_reactRouterDom.Link, {
-      to: "/recipes/recipes-by-category/?categoryId=".concat(category.id)
+      to: "".concat(recipesBycategoryUrl).concat(category.slug)
     }, category.name));
   })), _react.default.createElement("h2", null, "All recipes"), recipes && recipes.length && _react.default.createElement("ul", null, recipes.map(function (recipe) {
     return _react.default.createElement("li", {
@@ -50422,7 +50550,7 @@ regeneratorRuntime.mark(function _callee() {
 }));
 var _default = RecipeList;
 exports.default = _default;
-},{"react":"1n8/","react-router-dom":"/uc1","mobx-react-lite":"4+GV","react-helmet-async":"2FKu","../../components/RawHtml":"GLJt","../../services/cms":"CJ63"}],"AMe5":[function(require,module,exports) {
+},{"react":"1n8/","react-router-dom":"/uc1","mobx-react-lite":"4+GV","react-helmet-async":"2FKu","../../components/RawHtml":"GLJt","../../services/cms":"CJ63","../../store":"rMii"}],"AMe5":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -50436,7 +50564,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 
 var _default = _RecipeList.default;
 exports.default = _default;
-},{"./RecipeList":"ZODA"}],"HOtw":[function(require,module,exports) {
+},{"./RecipeList":"ZODA"}],"jmCY":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -50458,27 +50586,23 @@ var cms = _interopRequireWildcard(require("../../services/cms"));
 
 var _utils = require("../../utils");
 
+var _store = require("../../store");
+
 function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) { var desc = Object.defineProperty && Object.getOwnPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : {}; if (desc.get || desc.set) { Object.defineProperty(newObj, key, desc); } else { newObj[key] = obj[key]; } } } } newObj.default = obj; return newObj; } }
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-function _slicedToArray(arr, i) { return _arrayWithHoles(arr) || _iterableToArrayLimit(arr, i) || _nonIterableRest(); }
-
-function _nonIterableRest() { throw new TypeError("Invalid attempt to destructure non-iterable instance"); }
-
-function _iterableToArrayLimit(arr, i) { var _arr = []; var _n = true; var _d = false; var _e = undefined; try { for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) { _arr.push(_s.value); if (i && _arr.length === i) break; } } catch (err) { _d = true; _e = err; } finally { try { if (!_n && _i["return"] != null) _i["return"](); } finally { if (_d) throw _e; } } return _arr; }
-
-function _arrayWithHoles(arr) { if (Array.isArray(arr)) return arr; }
 
 function asyncGeneratorStep(gen, resolve, reject, _next, _throw, key, arg) { try { var info = gen[key](arg); var value = info.value; } catch (error) { reject(error); return; } if (info.done) { resolve(value); } else { Promise.resolve(value).then(_next, _throw); } }
 
 function _asyncToGenerator(fn) { return function () { var self = this, args = arguments; return new Promise(function (resolve, reject) { var gen = fn.apply(self, args); function _next(value) { asyncGeneratorStep(gen, resolve, reject, _next, _throw, "next", value); } function _throw(err) { asyncGeneratorStep(gen, resolve, reject, _next, _throw, "throw", err); } _next(undefined); }); }; }
 
-var RecipeCategoryListing = (0, _mobxReactLite.observer)(function (_ref) {
+var RecipeListCategoryListing = (0, _mobxReactLite.observer)(function (_ref) {
   var loading = _ref.loading,
       pageData = _ref.pageData,
       initialProps = _ref.initialProps,
-      pageQuery = _ref.pageQuery;
+      urlParams = _ref.urlParams;
+  var store = (0, _store.useStore)();
+  var categorySlug = urlParams.categorySlug;
   var title = pageData.title,
       content = pageData.content,
       featuredImage = pageData.featuredImage;
@@ -50486,7 +50610,15 @@ var RecipeCategoryListing = (0, _mobxReactLite.observer)(function (_ref) {
       category = _initialProps$categor === void 0 ? {} : _initialProps$categor,
       _initialProps$categor2 = initialProps.categoryPages,
       categoryPages = _initialProps$categor2 === void 0 ? [] : _initialProps$categor2;
-  return _react.default.createElement(_react.default.Fragment, null, _react.default.createElement(_reactHelmetAsync.Helmet, null, _react.default.createElement("title", null, "RecipeCategoryListing Page - ".concat(title || ''))), _react.default.createElement("div", null, loading && _react.default.createElement("h1", null, "LOADING PAGE & PROPS!"), _react.default.createElement("h1", null, title, " - ", category.name), _react.default.createElement("p", null, category.description), _react.default.createElement(_RawHtml.default, {
+
+  if (!(0, _utils.defined)(categorySlug)) {
+    var parentUrl = store.getRouteByComponentName('RecipeList');
+    return _react.default.createElement(_reactRouterDom.Redirect, {
+      to: parentUrl
+    });
+  }
+
+  return _react.default.createElement(_react.default.Fragment, null, _react.default.createElement(_reactHelmetAsync.Helmet, null, _react.default.createElement("title", null, "RecipeListCategoryListing Page - ".concat(title || ''))), _react.default.createElement("div", null, loading && _react.default.createElement("h1", null, "LOADING PAGE & PROPS!"), _react.default.createElement("h1", null, title, " - ", category.name), _react.default.createElement("p", null, category.description), _react.default.createElement(_RawHtml.default, {
     html: content
   }), featuredImage && _react.default.createElement("img", {
     src: featuredImage.sizes.thumbnail.url
@@ -50495,37 +50627,50 @@ var RecipeCategoryListing = (0, _mobxReactLite.observer)(function (_ref) {
       key: page.slug,
       to: page.url
     }, page.title);
-  }) : 'No pages :(')));
+  }) : 'No recipes found :(')));
 });
+RecipeListCategoryListing.routeOptions = {
+  params: ':categorySlug*'
+};
 
-RecipeCategoryListing.getInitialProps =
+RecipeListCategoryListing.getInitialProps =
 /*#__PURE__*/
 function () {
-  var _ref2 = _asyncToGenerator(
+  var _ref3 = _asyncToGenerator(
   /*#__PURE__*/
-  regeneratorRuntime.mark(function _callee(pageQuery) {
-    var categoryId, _ref3, _ref4, category, categoryPages;
-
+  regeneratorRuntime.mark(function _callee(_ref2) {
+    var urlParams, categorySlug, category, categoryPages;
     return regeneratorRuntime.wrap(function _callee$(_context) {
       while (1) {
         switch (_context.prev = _context.next) {
           case 0:
-            categoryId = pageQuery.categoryId;
-            _context.next = 3;
-            return Promise.all([cms.getTaxonomyCategory('recipe_category', categoryId), cms.getPagesInCategory('recipe', 'recipe_category', categoryId)]);
+            urlParams = _ref2.urlParams;
+            categorySlug = urlParams.categorySlug;
 
-          case 3:
-            _ref3 = _context.sent;
-            _ref4 = _slicedToArray(_ref3, 2);
-            category = _ref4[0];
-            categoryPages = _ref4[1];
-            (0, _utils.debug)("RecipeCategoryListing> received pages for category id ".concat(categoryId, ": "), categoryPages);
+            if ((0, _utils.defined)(categorySlug)) {
+              _context.next = 4;
+              break;
+            }
+
+            return _context.abrupt("return", {});
+
+          case 4:
+            _context.next = 6;
+            return cms.getTaxonomyCategorySlug('recipe_category', categorySlug);
+
+          case 6:
+            category = _context.sent;
+            _context.next = 9;
+            return cms.getPagesInCategory('recipe', 'recipe_category', category.id);
+
+          case 9:
+            categoryPages = _context.sent;
             return _context.abrupt("return", {
               category: category,
               categoryPages: categoryPages
             });
 
-          case 9:
+          case 11:
           case "end":
             return _context.stop();
         }
@@ -50534,13 +50679,13 @@ function () {
   }));
 
   return function (_x) {
-    return _ref2.apply(this, arguments);
+    return _ref3.apply(this, arguments);
   };
 }();
 
-var _default = RecipeCategoryListing;
+var _default = RecipeListCategoryListing;
 exports.default = _default;
-},{"react":"1n8/","react-router-dom":"/uc1","mobx-react-lite":"4+GV","react-helmet-async":"2FKu","../../components/RawHtml":"GLJt","../../services/cms":"CJ63","../../utils":"jWsf"}],"IxCO":[function(require,module,exports) {
+},{"react":"1n8/","react-router-dom":"/uc1","mobx-react-lite":"4+GV","react-helmet-async":"2FKu","../../components/RawHtml":"GLJt","../../services/cms":"CJ63","../../utils":"jWsf","../../store":"rMii"}],"7dag":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -50548,13 +50693,13 @@ Object.defineProperty(exports, "__esModule", {
 });
 exports.default = void 0;
 
-var _RecipeCategoryListing = _interopRequireDefault(require("./RecipeCategoryListing"));
+var _RecipeListCategoryListing = _interopRequireDefault(require("./RecipeListCategoryListing"));
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-var _default = _RecipeCategoryListing.default;
+var _default = _RecipeListCategoryListing.default;
 exports.default = _default;
-},{"./RecipeCategoryListing":"HOtw"}],"0+DP":[function(require,module,exports) {
+},{"./RecipeListCategoryListing":"jmCY"}],"0+DP":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -50572,7 +50717,7 @@ var _store = require("./store");
 
 var _hooks = require("./hooks");
 
-var _Header = _interopRequireDefault(require("./layout/Header"));
+var _Layout = _interopRequireDefault(require("./layout/Layout"));
 
 var _NotFound = _interopRequireDefault(require("./pages/NotFound"));
 
@@ -50588,7 +50733,7 @@ var _Recipe = _interopRequireDefault(require("./pages/Recipe"));
 
 var _RecipeList = _interopRequireDefault(require("./pages/RecipeList"));
 
-var _RecipeCategoryListing = _interopRequireDefault(require("./pages/RecipeCategoryListing"));
+var _RecipeListCategoryListing = _interopRequireDefault(require("./pages/RecipeListCategoryListing"));
 
 var _utils = require("./utils");
 
@@ -50602,7 +50747,7 @@ var pageComponents = {
   'Post': _Post.default,
   'Recipe': _Recipe.default,
   'RecipeList': _RecipeList.default,
-  'RecipeCategoryListing': _RecipeCategoryListing.default
+  'RecipeListCategoryListing': _RecipeListCategoryListing.default
 };
 
 var updateWpAdminBarEditButtonWithId = function updateWpAdminBarEditButtonWithId(pageId) {
@@ -50659,13 +50804,14 @@ var App = (0, _mobxReactLite.observer)(function (_ref, ref) {
   }
 
   var renderRoute = function renderRoute(props, route) {
-    (0, _utils.debug)('App> renderRoute() called');
+    var urlParams = props.match.params;
+    (0, _utils.debug)('App> renderRoute() called, url params received: ', urlParams);
     (0, _utils.debug)('App> has location changed?', store.locationChanged);
     var PageComponent = pageComponents[route.component];
 
     if (!(0, _utils.defined)(PageComponent)) {
-      var message = "Could not render page - no React component mapped to name \"".concat(route.component, "\" found!");
-      console.error("App> Could not render page - no React component mapped to name \"".concat(route.component, "\" found!"));
+      var message = "Could not render page - no React component mapped to name \"".concat(route.component, "\" could be found!");
+      console.error("App> ".concat(message));
 
       PageComponent = function PageComponent() {
         return _react.default.createElement(_Error.default, {
@@ -50674,14 +50820,14 @@ var App = (0, _mobxReactLite.observer)(function (_ref, ref) {
         });
       };
     } // expose promises in ref (enables us to wait for 
-    // data load when doing ssr, see server/lib/ssr/index.js).
+    // data load when doing ssr, see server/lib/ssr/index.js)
 
 
     if (ref && (0, _utils.defined)(ref.current) && ref.current === null) {
       // ssr
       (0, _utils.debug)('App> renderRoute is triggering SSR data & props load procedure - will not render this run');
       ref.current = {
-        contentPromise: store.loadContentAndInitialProps(route.id, route.postType, PageComponent.getInitialProps)
+        contentPromise: store.loadContentAndInitialProps(route.id, route.postType, urlParams, PageComponent.getInitialProps)
       }; // don't render anything here, just trigger the promise 
       // the ssr renderer will trigger a new render when the promise is resolved
 
@@ -50689,12 +50835,13 @@ var App = (0, _mobxReactLite.observer)(function (_ref, ref) {
     } else if (!ssr && store.locationChanged) {
       // client 
       (0, _utils.debug)('App> renderRoute is triggering CLIENT data & props load procedure');
-      store.loadContentAndInitialProps(route.id, route.postType, PageComponent.getInitialProps);
+      store.loadContentAndInitialProps(route.id, route.postType, urlParams, PageComponent.getInitialProps);
       updateWpAdminBarEditButtonWithId(route.id);
     }
 
     (0, _utils.debug)('App> current loaded pageData: ', store.pageData);
     (0, _utils.debug)('App> passing query params to page component: ', store.currentQuery);
+    (0, _utils.debug)('App> passing url params to page component: ', urlParams);
     return _react.default.createElement(PageComponent, _extends({
       id: route.id,
       type: route.postType,
@@ -50702,17 +50849,27 @@ var App = (0, _mobxReactLite.observer)(function (_ref, ref) {
       loading: store.loadingPageAndProps,
       pageData: store.pageData,
       initialProps: store.pageInitialProps,
-      pageQuery: store.currentQuery
+      pageQuery: store.currentQuery,
+      urlParams: urlParams
     }, props));
   };
 
-  return _react.default.createElement(_react.default.Fragment, null, _react.default.createElement(_Header.default, null), _react.default.createElement(LocationSwitch, {
+  return _react.default.createElement(_Layout.default, null, _react.default.createElement(LocationSwitch, {
     ssr: ssr
   }, store.routes.map(function (route) {
+    // check if this component is configured to accept url params, i.e.:
+    // ':categorySlug*/:name*'
+    var componentAcceptsUrlParams = (0, _utils.defined)(pageComponents[route.component]) && (0, _utils.definedNotNull)(pageComponents[route.component].routeOptions);
+    var path = componentAcceptsUrlParams ? "".concat(route.url).concat(pageComponents[route.component].routeOptions.params) : route.url;
+
+    if (componentAcceptsUrlParams) {
+      (0, _utils.debug)("App> routing component ".concat(route.component, " with url params: ").concat(route.url).concat(pageComponents[route.component].routeOptions.params));
+    }
+
     return _react.default.createElement(_reactRouterDom.Route, {
-      exact: true,
+      exact: !componentAcceptsUrlParams,
       key: route.url,
-      path: route.url,
+      path: path,
       render: function render(props) {
         return renderRoute(props, route);
       }
@@ -50725,7 +50882,7 @@ var App = (0, _mobxReactLite.observer)(function (_ref, ref) {
 });
 var _default = App;
 exports.default = _default;
-},{"react":"1n8/","react-router-dom":"/uc1","mobx-react-lite":"4+GV","./store":"rMii","./hooks":"lVCL","./layout/Header":"P6C6","./pages/NotFound":"qI17","./pages/Error":"6ICi","./pages/Start":"79b3","./pages/Page":"rWZy","./pages/Post":"GN/M","./pages/Recipe":"Cfx1","./pages/RecipeList":"AMe5","./pages/RecipeCategoryListing":"IxCO","./utils":"jWsf"}],"IVsl":[function(require,module,exports) {
+},{"react":"1n8/","react-router-dom":"/uc1","mobx-react-lite":"4+GV","./store":"rMii","./hooks":"lVCL","./layout/Layout":"RzAi","./pages/NotFound":"qI17","./pages/Error":"6ICi","./pages/Start":"79b3","./pages/Page":"rWZy","./pages/Post":"GN/M","./pages/Recipe":"Cfx1","./pages/RecipeList":"AMe5","./pages/RecipeListCategoryListing":"7dag","./utils":"jWsf"}],"IVsl":[function(require,module,exports) {
 "use strict";
 
 require("core-js/modules/es6.array.copy-within");

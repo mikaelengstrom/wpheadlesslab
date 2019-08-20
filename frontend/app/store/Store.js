@@ -138,6 +138,16 @@ class Store {
         return null; 
     }
 
+    getRouteByComponentName(name) {
+        const foundRoutes = this.routes.filter(route => 
+            route.component === name
+        );
+
+        return foundRoutes.length 
+            ? foundRoutes[0].url
+            : null; 
+    }
+
     // actions
 
     @action
@@ -174,7 +184,7 @@ class Store {
     }
 
     @action
-    async loadContentAndInitialProps(id, type, getInitialProps) {
+    async loadContentAndInitialProps(id, type, urlParams, getInitialProps) {
         this.updateQueryParams(); 
 
         debug('Store: loadContentAndInitialProps() called - loading content and initial props');
@@ -197,7 +207,7 @@ class Store {
             : this.loadContent(id, type);
 
         const loadInitialProps = () => isFn(getInitialProps)
-            ? this.loadInitialProps(getInitialProps)
+            ? this.loadInitialProps(getInitialProps, urlParams)
             : undefined;
 
         await Promise.all([
@@ -215,7 +225,6 @@ class Store {
         debug('Store: loadContent() called - loading page data '); 
 
         if(cache.hasKey(id)) {
-            // this.pageData = observable.object({});
             set(this.pageData, cache.get(id));
             debug('Store: loadContent() - page data found in cache, returning cached data');
             return;
@@ -225,7 +234,6 @@ class Store {
             const content = await cms.getContent(id, type);
 
             runInAction(() => {
-                // this.pageData = observable.object({}); 
                 cache.set(id, content);
                 set(this.pageData, content);
 
@@ -243,8 +251,8 @@ class Store {
     @action
     async loadContentPreview(id, type) {
         const mediaId = '_thumbnail_id' in this.currentQuery
-                ? this.currentQuery['_thumbnail_id']
-                : -1; 
+            ? this.currentQuery['_thumbnail_id']
+            : -1; 
             
         debug('Store: loadContentPreview() called - loading PREVIEW page data ');
         debug('Store: loadContentPreview() - will load featured media preview with media id: ', mediaId);
@@ -268,11 +276,15 @@ class Store {
     } 
 
     @action 
-    async loadInitialProps(getInitialProps) {
+    async loadInitialProps(getInitialProps, urlParams) {
         debug('Store: loadInitialProps() called - loading props!');
 
         try {
-            const props = await getInitialProps(this.currentQuery);
+            const props = await getInitialProps({
+                urlParams, 
+                pageQuery: this.currentQuery
+            });
+
             debug('Store: fetched initial props!');
 
             runInAction(() => {

@@ -6,7 +6,7 @@ import {
 } from '../utils';
 
 const generalConfig = {
-    cacheTtl: 5 * 1000
+    cacheTtl: 10 * 1000
 }
 
 const devDefaultConfig = {

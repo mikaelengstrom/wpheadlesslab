@@ -9,9 +9,15 @@ import RawHtml from '../../components/RawHtml';
 
 import * as cms from '../../services/cms';
 
+import { useStore } from '../../store';
+
 const RecipeList = observer(({ loading, pageData, initialProps }) => {
+    const store = useStore(); 
+
     const { title, content, featuredImage } = pageData; 
     const { recipes, recipeCategories } = initialProps; 
+
+    const recipesBycategoryUrl = store.getRouteByComponentName('RecipeListCategoryListing');
 
     return (
         <>
@@ -36,7 +42,7 @@ const RecipeList = observer(({ loading, pageData, initialProps }) => {
                     <ul>
                         {recipeCategories.map(category =>
                             <li key={category.id}>
-                                <Link to={`/recipes/recipes-by-category/?categoryId=${category.id}`}>
+                                <Link to={`${recipesBycategoryUrl}${category.slug}`}>
                                     {category.name}
                                 </Link>
                             </li>
