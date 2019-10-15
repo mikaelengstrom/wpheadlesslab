@@ -25,7 +25,7 @@ const ssrRenderer = async (req, res) => {
     debug(`\n\nSSR renderer: rendering url "${req.originalUrl}"`)
     let appRef = createRef(null);
 
-    const context = {};
+    const routerContext = {};
     const helmetContext = {};
     
     const store = new Store(); 
@@ -41,7 +41,7 @@ const ssrRenderer = async (req, res) => {
             <HelmetProvider context={helmetContext}>
                 <StaticRouter
                     location={req.originalUrl}
-                    context={context}
+                    context={routerContext}
                 >
                     <App 
                         ssr={true}
@@ -59,6 +59,16 @@ const ssrRenderer = async (req, res) => {
     let app = '';
     ReactDOMServer.renderToString(component);
     if (appRef.current && appRef.current.contentPromise) {
+        if (routerContext.url) {
+            debug('SSR renderer: 301 redirect triggered by react-router!');
+            debug(`SSR renderer: redirecting to "${routerContext.url}"`);
+
+            res.writeHead(301, { Location: routerContext.url });
+            res.end();
+
+            return; 
+        }
+
         debug('SSR Renderer: waiting for content promise!');
         await appRef.current.contentPromise;
 
@@ -75,16 +85,20 @@ const ssrRenderer = async (req, res) => {
         </script>
     `;
 
-    if (context.url) {
-        debug('SSR renderer: 301 redirect triggered by react-router!');
-        debug(`SSR renderer: redirecting to "${context.url}"`);
+    debug('SSR renderer: responding with rendered html!');
+    res.send(html);
 
-        res.writeHead(301, { Location: context.url });
-        res.end();
-    } else {
-        debug('SSR renderer: responding with rendered html!');
-        res.send(html);
-    }
+    // //TODO: see above
+    // if (routerContext.url) {
+    //     debug('SSR renderer: 301 redirect triggered by react-router!');
+    //     debug(`SSR renderer: redirecting to "${routerContext.url}"`);
+
+    //     res.writeHead(301, { Location: routerContext.url });
+    //     res.end();
+    // } else {
+    //     debug('SSR renderer: responding with rendered html!');
+    //     res.send(html);
+    // }
 };
 
 export default ssrRenderer;

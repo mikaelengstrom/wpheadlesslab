@@ -116,6 +116,8 @@ const App = observer(({ ssr = false }, ref) => {
         debug('App> has location changed?', store.locationChanged);
 
         let PageComponent = pageComponents[route.component];
+        const componentAcceptsUrlParams = defined(PageComponent)
+            && definedNotNull(PageComponent.routeOptions);
 
         if(!defined(PageComponent)) {
             const message = `Could not render page - no React component mapped to name "${route.component}" could be found!`; 
@@ -134,7 +136,7 @@ const App = observer(({ ssr = false }, ref) => {
         // data load when doing ssr, see server/lib/ssr/index.js)
 
         if(ref && defined(ref.current) && ref.current === null) { // ssr
-            debug('App> renderRoute is triggering SSR data & props load procedure - will not render this run'); 
+            debug('App> renderRoute is triggering SSR data & props load procedure'); 
 
             ref.current = {
                 contentPromise: store.loadContentAndInitialProps(
@@ -145,10 +147,12 @@ const App = observer(({ ssr = false }, ref) => {
                 )
             };
 
-            // don't render anything here, just trigger the promise 
+            // don't render anything here unless the page comp. accepts route params, just trigger the promise 
             // the ssr renderer will trigger a new render when the promise is resolved
-
-            return null; 
+            if (!componentAcceptsUrlParams) {
+                debug('App> pageComponents has NO route params! skipping rendering (wait for page data)'); 
+                return null; 
+            }
         } else if(!ssr && store.locationChanged) { // client 
             debug('App> renderRoute is triggering CLIENT data & props load procedure'); 
 

@@ -50808,6 +50808,7 @@ var App = (0, _mobxReactLite.observer)(function (_ref, ref) {
     (0, _utils.debug)('App> renderRoute() called, url params received: ', urlParams);
     (0, _utils.debug)('App> has location changed?', store.locationChanged);
     var PageComponent = pageComponents[route.component];
+    var componentAcceptsUrlParams = (0, _utils.defined)(PageComponent) && (0, _utils.definedNotNull)(PageComponent.routeOptions);
 
     if (!(0, _utils.defined)(PageComponent)) {
       var message = "Could not render page - no React component mapped to name \"".concat(route.component, "\" could be found!");
@@ -50825,13 +50826,16 @@ var App = (0, _mobxReactLite.observer)(function (_ref, ref) {
 
     if (ref && (0, _utils.defined)(ref.current) && ref.current === null) {
       // ssr
-      (0, _utils.debug)('App> renderRoute is triggering SSR data & props load procedure - will not render this run');
+      (0, _utils.debug)('App> renderRoute is triggering SSR data & props load procedure');
       ref.current = {
         contentPromise: store.loadContentAndInitialProps(route.id, route.postType, urlParams, PageComponent.getInitialProps)
-      }; // don't render anything here, just trigger the promise 
+      }; // don't render anything here unless the page comp. accepts route params, just trigger the promise 
       // the ssr renderer will trigger a new render when the promise is resolved
 
-      return null;
+      if (!componentAcceptsUrlParams) {
+        (0, _utils.debug)('App> pageComponents has NO route params! skipping rendering (wait for page data)');
+        return null;
+      }
     } else if (!ssr && store.locationChanged) {
       // client 
       (0, _utils.debug)('App> renderRoute is triggering CLIENT data & props load procedure');

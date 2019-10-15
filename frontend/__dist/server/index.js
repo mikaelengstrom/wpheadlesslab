@@ -2226,6 +2226,7 @@ const App = (0, _mobxReactLite.observer)(({
     (0, _utils.debug)('App> renderRoute() called, url params received: ', urlParams);
     (0, _utils.debug)('App> has location changed?', store.locationChanged);
     let PageComponent = pageComponents[route.component];
+    const componentAcceptsUrlParams = (0, _utils.defined)(PageComponent) && (0, _utils.definedNotNull)(PageComponent.routeOptions);
 
     if (!(0, _utils.defined)(PageComponent)) {
       const message = `Could not render page - no React component mapped to name "${route.component}" could be found!`;
@@ -2241,13 +2242,16 @@ const App = (0, _mobxReactLite.observer)(({
 
     if (ref && (0, _utils.defined)(ref.current) && ref.current === null) {
       // ssr
-      (0, _utils.debug)('App> renderRoute is triggering SSR data & props load procedure - will not render this run');
+      (0, _utils.debug)('App> renderRoute is triggering SSR data & props load procedure');
       ref.current = {
         contentPromise: store.loadContentAndInitialProps(route.id, route.postType, urlParams, PageComponent.getInitialProps)
-      }; // don't render anything here, just trigger the promise 
+      }; // don't render anything here unless the page comp. accepts route params, just trigger the promise 
       // the ssr renderer will trigger a new render when the promise is resolved
 
-      return null;
+      if (!componentAcceptsUrlParams) {
+        (0, _utils.debug)('App> pageComponents has NO route params! skipping rendering (wait for page data) ');
+        return null;
+      }
     } else if (!ssr && store.locationChanged) {
       // client 
       (0, _utils.debug)('App> renderRoute is triggering CLIENT data & props load procedure');
@@ -2329,7 +2333,7 @@ function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj;
 const ssrRenderer = async (req, res) => {
   (0, _utils.debug)(`\n\nSSR renderer: rendering url "${req.originalUrl}"`);
   let appRef = (0, _react.createRef)(null);
-  const context = {};
+  const routerContext = {};
   const helmetContext = {};
   const store = new _store.Store();
   (0, _utils.debug)('SSR renderer: calling store bootstrap!');
@@ -2343,7 +2347,7 @@ const ssrRenderer = async (req, res) => {
     context: helmetContext
   }, _react.default.createElement(_reactRouterDom.StaticRouter, {
     location: req.originalUrl,
-    context: context
+    context: routerContext
   }, _react.default.createElement(_App.default, {
     ssr: true,
     ref: appRef
@@ -2356,6 +2360,16 @@ const ssrRenderer = async (req, res) => {
   _server.default.renderToString(component);
 
   if (appRef.current && appRef.current.contentPromise) {
+    if (routerContext.url) {
+      (0, _utils.debug)('SSR renderer: 301 redirect triggered by react-router!');
+      (0, _utils.debug)(`SSR renderer: redirecting to "${routerContext.url}"`);
+      res.writeHead(301, {
+        Location: routerContext.url
+      });
+      res.end();
+      return;
+    }
+
     (0, _utils.debug)('SSR Renderer: waiting for content promise!');
     await appRef.current.contentPromise;
     (0, _utils.debug)('SSR Renderer: content promise resolved!');
@@ -2369,18 +2383,17 @@ const ssrRenderer = async (req, res) => {
             window.__FROJD_STATE = '${(0, _store.dehydrate)(store)}';
         </script>
     `;
-
-  if (context.url) {
-    (0, _utils.debug)('SSR renderer: 301 redirect triggered by react-router!');
-    (0, _utils.debug)(`SSR renderer: redirecting to "${context.url}"`);
-    res.writeHead(301, {
-      Location: context.url
-    });
-    res.end();
-  } else {
-    (0, _utils.debug)('SSR renderer: responding with rendered html!');
-    res.send(html);
-  }
+  (0, _utils.debug)('SSR renderer: responding with rendered html!');
+  res.send(html); // //TODO: see above
+  // if (routerContext.url) {
+  //     debug('SSR renderer: 301 redirect triggered by react-router!');
+  //     debug(`SSR renderer: redirecting to "${routerContext.url}"`);
+  //     res.writeHead(301, { Location: routerContext.url });
+  //     res.end();
+  // } else {
+  //     debug('SSR renderer: responding with rendered html!');
+  //     res.send(html);
+  // }
 };
 
 var _default = ssrRenderer;
